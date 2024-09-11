@@ -1,0 +1,7 @@
+.idea
+tests
+.npmignore
+node_modules
+package-lock.json
+dist/index.js.LICENSE.txt
+rollup.config.js

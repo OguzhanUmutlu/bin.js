@@ -1,0 +1,9 @@
+<script type="module">
+    import "../dist/index.js";
+
+    const buf = BinJS.serialize({
+        a: "hello, world"
+    });
+    console.log(buf);
+    console.log(BinJS.deserialize(buf));
+</script>

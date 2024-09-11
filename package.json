@@ -1,0 +1,31 @@
+{
+  "name": "stramp",
+  "version": "1.0.0",
+  "description": "A JavaScript library that can convert any kind of data into binary that can be restored",
+  "main": "dist/index.js",
+  "scripts": {},
+  "dependencies": {
+    "buffer": "^6.0.3"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^26.0.1",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "rollup": "^4.21.2"
+  },
+  "keywords": [
+    "struct",
+    "typed",
+    "static",
+    "binary",
+    "serialize",
+    "deserialize",
+    "encode",
+    "decode"
+  ],
+  "author": "OguzhanUmutlu",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OguzhanUmutlu/bin.js"
+  }
+}
