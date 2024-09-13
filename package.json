@@ -1,6 +1,6 @@
 {
   "name": "stramp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A JavaScript library that can convert any kind of data into binary that can be restored",
   "main": "dist/index.js",
   "scripts": {},

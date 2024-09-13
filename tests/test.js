@@ -1,17 +1,19 @@
-const BinJS = require("../dist/index.js");
+const BinJS = require("../index");
 
-class MyClass {
-}
+const Vec2 = BinJS.object.struct({
+    x: BinJS.f32,
+    y: BinJS.f32
+});
 
-const myInstance = new MyClass();
-myInstance.a = 10;
-myInstance.b = "hello, world!";
-myInstance.c = {x: 50, y: 100};
+const myVec = new Vec2;
 
-BinJS.setOptions({
-    classes: [MyClass]
-})
+console.log(myVec.x);
 
-const buf = BinJS.serialize(myInstance);
-console.log(buf, buf.length);
-console.log(BinJS.deserialize(buf));
+const buf = myVec.buffer;
+
+buf[2] = 30;
+buf[3] = 65;
+
+myVec.buffer = buf;
+
+console.log(myVec.x);

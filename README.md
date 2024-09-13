@@ -45,20 +45,20 @@ console.log(BinJS.deserialize(buf)) // { a: 10, b: 'hello, world!', c: { x: 50, 
 const BinJS = require("stramp")
 const {string, u8, u16, object, array} = BinJS
 
-const person = object.struct({
+const Person = object.struct({
     name: string,
     age: u8,
     height: u16
 })
 
 // creates a dynamically sized array that includes Person struct
-const people = array.typed(person)
+const People = array.typed(Person)
 // Max length of the array is 2^16 = 65536, you can change it like this:
 // const people = array.typed(person, 4)
 // This will use 4 bytes, resulting with a u32 int, 2^32 = 4294967295
 // Length bytes options: 1, 2, 4, 8
 
-const buf = people.serialize([
+const buf = People.serialize([
     {name: "John", age: 30, height: 180},
     {name: "Jane", age: 25, height: 165}
 ])
@@ -70,11 +70,25 @@ console.log(buf) // <Buffer 02 00 1e b4 00 4a 6f 68 6e 00 19 a5 00 4a 61 6e 65 0
 // The 0 after the strings indicates the end of the string.
 // The 1 in the end indicates the end of the array.
 
-console.log(people.deserialize(buf))
+console.log(People.deserialize(buf))
 // [
 //   { age: 30, height: 180, name: 'John' },
 //   { age: 25, height: 165, name: 'Jane' }
 // ]
+
+const myPerson = new Person()
+myPerson.name = "John"
+myPerson.age = 30
+myPerson.height = 180
+
+const buf2 = myPerson.buffer // It's that easy! No need to use .serialize() or .deserialize()
+
+buf2[5] = 40 // Change something random
+
+myPerson.buffer = buf2 // Load it back
+
+console.log(myPerson) // Struct { age: 30, height: 180, name: 'Jo(n' }
+// Apparently we changed the name to 'Jo(n'
 ```
 
 ## Storing classes

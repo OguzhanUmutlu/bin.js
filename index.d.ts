@@ -9,6 +9,7 @@ type Bin<V = any> = {
     validate(value: any): string | void;
     serialize(value: any): Buffer;
     deserialize(buffer: Buffer): any;
+    makeSample(): Bin<V>;
 };
 
 type Class<T = any, K extends T = any> = new (...args: any[]) => K;
@@ -29,6 +30,14 @@ type ArrayBin<T = any> = {
     typed<K>(type: ArrayBin<K>, lengthBytes?: number): ArrayBin<K>;
     typed<K>(type: ObjectBin<K>, lengthBytes?: number): ArrayBin<K>;
     struct<K extends Bin[]>(types: K): ArrayBin<K[number]["__TYPE__"]>;
+    makeSample(): ArrayBin<T>;
+};
+
+type ObjectStruct<Obj> = Obj & {
+    getSize(): number;
+    validate(): string | void;
+    get buffer(): Buffer;
+    set buffer(v: Buffer);
 };
 
 type ObjectBin<Obj = Record<string, any>> = {
@@ -45,10 +54,15 @@ type ObjectBin<Obj = Record<string, any>> = {
     typed<K>(type: Bin<K>, lengthBytes?: number): ObjectBin<Record<string, K>>;
     typed<K>(type: ArrayBin<K>, lengthBytes?: number): ObjectBin<Record<string, K>>;
     typed<K>(type: ObjectBin<K>, lengthBytes?: number): ObjectBin<Record<string, K>>;
-    struct<K extends Record<string, AnyBin>>(struct: K): ObjectBin<{
-        [L in keyof K]: K[L]["__TYPE__"];
-    }>;
+    struct<K extends Record<string, AnyBin>, KObj = { [L in keyof K]: K[L]["__TYPE__"]; }>(struct: K):
+        ObjectBin<KObj>
+
+        // & (() => ObjectStruct<KObj>) // I commented this because when I tabbed after typing myStruc(auto complete),
+        // it added () after the autocomplete thinking it's a function. You can still use it like myStruct(), "new" is not forced.
+
+        & (new () => ObjectStruct<KObj>);
     class<K>(clazz: K): ObjectBin<K>;
+    makeSample<K>(clazz?: K): (K extends Class ? InstanceType<K> : {}) & Obj;
 };
 
 type MapBin<Obj = Map<string, any>> = {
@@ -73,6 +87,7 @@ type MapBin<Obj = Map<string, any>> = {
     typed<K, V>(keyType: ObjectBin<K>, valueType: Bin<V>, lengthBytes?: number): MapBin<Map<K, V>>;
     typed<K, V>(keyType: ObjectBin<K>, valueType: ArrayBin<V>, lengthBytes?: number): MapBin<Map<K, V>>;
     typed<K, V>(keyType: ObjectBin<K>, valueType: ObjectBin<V>, lengthBytes?: number): MapBin<Map<K, V>>;
+    makeSample(): MapBin<Obj>;
 };
 
 type AnyBin = Bin | ArrayBin | ObjectBin;

@@ -5,6 +5,9 @@
 
     const Buffer = global_.Buffer || require("buffer").Buffer;
 
+    const nameSymbol = Symbol("BinName");
+    const structSymbol = Symbol("BinStruct");
+
     function baseAssert(val, bool) {
         if (!bool) return `Invalid value(${JSON.stringify(val)})`;
     }
@@ -115,7 +118,7 @@
 
         serialize(value) {
             const id = this.valueToBinId(value);
-            const buffer = Buffer.allocUnsafe(this.bins[id].size(value) + 1);
+            const buffer = Buffer.allocUnsafe(this.bins[id].getSize(value) + 1);
             buffer[0] = id;
             this.bins[id].write(buffer, [1], value);
             return buffer;
@@ -125,32 +128,32 @@
             return this.bins[buffer[0]].read(buffer, [1]);
         };
 
-        size(value) {
-            return this.valueToBin(value).size(value);
+        getSize(value) {
+            return this.valueToBin(value).getSize(value);
         };
 
-        __makeBin(name, write, read, size, validate) {
+        __makeBin(name, write, read, size, validate, sample) {
             return {
-                name, write: (buffer, index, value, ...args) => {
+                [nameSymbol]: name, write: (buffer, index, value, ...args) => {
                     const err = validate(value, ...args);
-                    if (err) throw new Error(name + err);
+                    if (err) throw new Error(name + (name.endsWith(" ") ? "" : ": ") + err);
                     write(buffer, index, value, ...args);
                     return buffer;
-                }, _write: write, read, size, validate, serialize(value, ...args) {
-                    const buffer = Buffer.allocUnsafe(this.size(value));
+                }, _write: write, read, getSize: size, validate, serialize(value, ...args) {
+                    const buffer = Buffer.allocUnsafe(this.getSize(value));
                     this.write(buffer, [0], value, ...args);
                     return buffer;
                 },
                 deserialize(buffer, ...args) {
                     return this.read(buffer, [0], ...args);
-                }
+                }, makeSample: sample
             }
         };
 
-        __registerBin(name, write, read, size, validate, errorPrefix = "") {
+        __registerBin(name, write, read, size, validate, sample) {
             const id = this._id++;
             if (id > 255) throw new Error("Too many bins");
-            this.bins[id] = this.__makeBin(name, write, read, size, validate, errorPrefix);
+            this.bins[id] = this.__makeBin(name, write, read, size, validate, sample);
             return id;
         };
 
@@ -161,6 +164,7 @@
                 () => null,
                 () => null,
                 () => 0,
+                () => null,
                 () => null
             )];
             this.undefined = this.bins[this.undefinedId = this.__registerBin(
@@ -168,56 +172,64 @@
                 () => undefined,
                 () => undefined,
                 () => 0,
-                () => null
+                () => null,
+                () => undefined
             )];
             this.true = this.bins[this.trueId = this.__registerBin(
                 "true",
                 () => true,
                 () => true,
                 () => 0,
-                () => null
+                () => null,
+                () => true
             )];
             this.false = this.bins[this.falseId = this.__registerBin(
                 "false",
                 () => false,
                 () => false,
                 () => 0,
-                () => null
+                () => null,
+                () => false
             )];
             this.nan = this.bins[this.nanId = this.__registerBin(
                 "NaN",
                 () => NaN,
                 () => NaN,
                 () => 0,
-                () => null
+                () => null,
+                () => NaN
             )];
             this.posInfinity = this.bins[this.posInfinityId = this.__registerBin(
                 "+Infinity",
                 () => Infinity,
                 () => Infinity,
                 () => 0,
-                () => null
+                () => null,
+                () => Infinity
             )];
             this.negInfinity = this.bins[this.negInfinityId = this.__registerBin(
                 "-Infinity",
                 () => -Infinity,
                 () => -Infinity,
                 () => 0,
-                () => null
+                () => null,
+                () => -Infinity
             )];
             this.zero = this.bins[this.zeroId = this.__registerBin(
                 "0",
                 () => 0,
                 () => 0,
                 () => 0,
-                () => null
+                () => null,
+                () => 0
             )];
             this.zeroN = this.bins[this.zeroNId = this.__registerBin(
                 "0n",
                 () => 0n,
                 () => 0n,
                 () => 0,
-                () => null
+                () => null,
+                () => 0n
             )];
 
             this.u8 = this.bins[this.u8id = this.__registerBin(
@@ -225,7 +237,8 @@
                 (buffer, index, value) => buffer[index[0]++] = value,
                 (buffer, index) => buffer[index[0]++],
                 () => 1,
-                v => baseAssert(v, typeof v === "number" && !isNaN(v) && v >= 0 && v <= 255)
+                v => baseAssert(v, typeof v === "number" && !isNaN(v) && v >= 0 && v <= 255),
+                () => 0
             )];
             this.u16 = this.bins[this.u16id = this.__registerBin(
                 "u16",
@@ -239,7 +252,8 @@
                     return value;
                 },
                 () => 2,
-                v => baseAssert(v, typeof v === "number" && !isNaN(v) && v >= 0 && v <= 65535)
+                v => baseAssert(v, typeof v === "number" && !isNaN(v) && v >= 0 && v <= 65535),
+                () => 0
             )];
             this.u32 = this.bins[this.u32id = this.__registerBin(
                 "u32",
@@ -253,7 +267,8 @@
                     return value;
                 },
                 () => 4,
-                v => baseAssert(v, typeof v === "number" && !isNaN(v) && v >= 0 && v <= 4294967295)
+                v => baseAssert(v, typeof v === "number" && !isNaN(v) && v >= 0 && v <= 4294967295),
+                () => 0
             )];
             this.u64 = this.bins[this.u64id = this.__registerBin(
                 "u64",
@@ -267,14 +282,16 @@
                     return value;
                 },
                 () => 8,
-                v => baseAssert(v, typeof v === "bigint" && v >= 0n && v <= 18446744073709551615n)
+                v => baseAssert(v, typeof v === "bigint" && v >= 0n && v <= 18446744073709551615n),
+                () => 0
             )];
             this.i8 = this.bins[this.i8id = this.__registerBin(
                 "i8",
                 (buffer, index, value) => buffer[index[0]++] = value + 128,
                 (buffer, index) => buffer[index[0]++] - 128,
                 () => 1,
-                v => baseAssert(v, typeof v === "number" && !isNaN(v) && v >= -128 && v <= 127)
+                v => baseAssert(v, typeof v === "number" && !isNaN(v) && v >= -128 && v <= 127),
+                () => 0
             )];
             this.i16 = this.bins[this.i16id = this.__registerBin(
                 "i16",
@@ -288,7 +305,8 @@
                     return value;
                 },
                 () => 2,
-                v => baseAssert(v, typeof v === "number" && !isNaN(v) && v >= -32768 && v <= 32767)
+                v => baseAssert(v, typeof v === "number" && !isNaN(v) && v >= -32768 && v <= 32767),
+                () => 0
             )];
             this.i32 = this.bins[this.i32id = this.__registerBin(
                 "i32",
@@ -302,7 +320,8 @@
                     return value;
                 },
                 () => 4,
-                v => baseAssert(v, typeof v === "number" && !isNaN(v) && v >= -2147483648 && v <= 2147483647)
+                v => baseAssert(v, typeof v === "number" && !isNaN(v) && v >= -2147483648 && v <= 2147483647),
+                () => 0
             )];
             this.i64 = this.bins[this.i64id = this.__registerBin(
                 "i64",
@@ -316,7 +335,8 @@
                     return value;
                 },
                 () => 8,
-                v => baseAssert(v, typeof v === "bigint" && v >= -9223372036854775808n && v <= 9223372036854775807n)
+                v => baseAssert(v, typeof v === "bigint" && v >= -9223372036854775808n && v <= 9223372036854775807n),
+                () => 0
             )];
             this.f32 = this.bins[this.f32id = this.__registerBin(
                 "f32",
@@ -330,7 +350,8 @@
                     return value;
                 },
                 () => 4,
-                v => baseAssert(v, typeof v === "number" && !isNaN(v) && v >= -3.4028234663852886e+38 && v <= 3.4028234663852886e+38)
+                v => baseAssert(v, typeof v === "number" && !isNaN(v) && v >= -3.4028234663852886e+38 && v <= 3.4028234663852886e+38),
+                () => 0
             )];
             this.f64 = this.bins[this.f64id = this.__registerBin(
                 "f64",
@@ -344,7 +365,8 @@
                     return value;
                 },
                 () => 8,
-                v => baseAssert(v, typeof v === "number" && !isNaN(v) && v >= -1.7976931348623157e+308 && v <= 1.7976931348623157e+308)
+                v => baseAssert(v, typeof v === "number" && !isNaN(v) && v >= -1.7976931348623157e+308 && v <= 1.7976931348623157e+308),
+                () => 0
             )];
             this.bigintPos = this.bins[this.bigintPosId = this.__registerBin(
                 "bigintPos",
@@ -370,14 +392,16 @@
                     if (hex.length % 2 === 1) hex = "0" + hex;
                     return hex.length / 2 + 2;
                 },
-                v => baseAssert(v, typeof v === "bigint" && v > 0n)
+                v => baseAssert(v, typeof v === "bigint" && v > 0n),
+                () => 1n
             )];
             this.bigintNeg = this.bins[this.bigintNegId = this.__registerBin(
                 "bigintNeg",
                 (buffer, index, value) => this.bigintPos.write(buffer, index, -value),
                 (buffer, index) => -this.bigintPos.read(buffer, index, 0),
-                value => this.bigintPos.size(-value),
-                v => baseAssert(v, typeof v === "bigint" && v < 0n)
+                value => this.bigintPos.getSize(-value),
+                v => baseAssert(v, typeof v === "bigint" && v < 0n),
+                () => -1n
             )];
 
             this.string8 = this.bins[this.string8id = this.__registerBin(
@@ -395,7 +419,8 @@
                     return value;
                 },
                 value => Buffer.byteLength(value, "utf8") + 1,
-                v => baseAssert(v, typeof v === "string" && Buffer.byteLength(v, "utf8") <= 255)
+                v => baseAssert(v, typeof v === "string" && Buffer.byteLength(v, "utf8") <= 255),
+                () => ""
             )];
             this.string16 = this.bins[this.string16id = this.__registerBin(
                 "string16",
@@ -414,7 +439,8 @@
                     return value;
                 },
                 value => Buffer.byteLength(value, "utf8") + 2,
-                v => baseAssert(v, typeof v === "string" && Buffer.byteLength(v, "utf8") <= 65535)
+                v => baseAssert(v, typeof v === "string" && Buffer.byteLength(v, "utf8") <= 65535),
+                () => ""
             )];
             this.string32 = this.bins[this.string32id = this.__registerBin(
                 "string32",
@@ -433,7 +459,8 @@
                     return value;
                 },
                 value => Buffer.byteLength(value, "utf8") + 4,
-                v => baseAssert(v, typeof v === "string" && Buffer.byteLength(v, "utf8") <= 4294967295)
+                v => baseAssert(v, typeof v === "string" && Buffer.byteLength(v, "utf8") <= 4294967295),
+                () => ""
             )];
             this.string = this.bins[this.stringId = this.__registerBin(
                 "string",
@@ -466,7 +493,8 @@
                     }
                     return size;
                 },
-                v => baseAssert(v, typeof v === "string")
+                v => baseAssert(v, typeof v === "string"),
+                () => ""
             )]
 
             this.array = this.bins[this.arrayId = this.__registerBin(
@@ -491,11 +519,12 @@
                     return value;
                 },
                 (value) => {
-                    return 1 + value.reduce((sum, item) => sum + this.valueToBin(item).size(item) + 1, 0);
+                    return 1 + value.reduce((sum, item) => sum + this.getSize(item) + 1, 0);
                 },
                 v => {
                     if (!Array.isArray(v)) return "Expected an array";
-                }
+                },
+                () => []
             )];
 
             const addArrayProps = (array, clazz = Array, convert = r => r) => {
@@ -503,7 +532,7 @@
                     const readFn = readFnMatch[lengthBytes];
                     const writeFn = writeFnMatch[lengthBytes];
                     return this.__makeBin(
-                        `array<${type.name}>`,
+                        `array<${type[nameSymbol]}>`,
                         (buffer, index, value) => {
                             // I used length because if I don"t, this causes a bug: [1, 2, 3], resulting in a buffer that starts with the array break byte.
                             let length = value.length;
@@ -524,7 +553,7 @@
                             }
                             return convert(value);
                         },
-                        value => lengthBytes + value.reduce((sum, item) => sum + type.size(item), 0),
+                        value => lengthBytes + value.reduce((sum, item) => sum + type.getSize(item), 0),
                         v => {
                             if (!(v instanceof clazz)) return `Expected an instance of ${clazz.name}`;
                             for (let i = 0; i < v.length; i++) {
@@ -532,12 +561,13 @@
                                 const err = type.validate(item);
                                 if (err) return `[${i}]${err[0] === "[" ? "" : ": "}${err}`;
                             }
-                        }
+                        },
+                        () => []
                     );
                 };
                 array.struct = types => {
                     return this.__makeBin(
-                        `[${types.map(t => t.name).join(", ")}]`,
+                        `[${types.map(t => t[nameSymbol]).join(", ")}]`,
                         (buffer, index, value) => {
                             for (let i = 0; i < types.length; i++) {
                                 const type = types[i];
@@ -552,7 +582,7 @@
                             }
                             return value;
                         },
-                        value => value.reduce((sum, item, i) => sum + types[i].size(item), 0),
+                        value => value.reduce((sum, item, i) => sum + types[i].getSize(item), 0),
                         v => {
                             if (!(v instanceof clazz)) return `Expected an instance of ${clazz.name}`;
                             if (v.length !== types.length) return `Expected ${types.length} items, but got ${v.length}`;
@@ -561,7 +591,8 @@
                                 const err = types[i].validate(item);
                                 if (err) return `[${i}]${err[0] === "[" ? "" : ": "}${err}`;
                             }
-                        }
+                        },
+                        () => types.map(t => t.makeSample())
                     );
                 };
             };
@@ -604,8 +635,9 @@
                     (buffer, index) => {
                         return new clazz(this.array.read(buffer, index));
                     },
-                    value => this.array.size([...value]),
-                    value => this.array.validate([...value])
+                    value => this.array.getSize([...value]),
+                    value => this.array.validate([...value]),
+                    () => new clazz(this.array.makeSample())
                 )], clazz, v => new clazz(v));
             }
 
@@ -632,11 +664,15 @@
                 },
                 (value, condition = () => true) => {
                     return 1 + Object.entries(value).reduce((sum, [key, item]) =>
-                        sum + (condition(item) && this.string.size(key) + this.size(item) + 1), 0);
+                        sum + (condition(item) && this.string.getSize(key) + this.getSize(item) + 1), 0);
                 },
                 (v, clazz = Object) => {
-                    if (v === null || typeof v !== "object" || v.constructor !== clazz) return clazz === Object ? "Expected a raw object" : `Expected an instance of ${clazz.name}`;
-                }
+                    if (v === null || typeof v !== "object") return "Invalid object";
+                    if (v.constructor !== clazz && (clazz !== Object || !v[structSymbol])) {
+                        return clazz === Object ? "Expected a raw object" : `Expected an instance of ${clazz.name}`;
+                    }
+                },
+                (constructor = r => r) => constructor({})
             )];
             const classCheck = item => typeof item !== "function" || this.anyList.includes(item);
             const addClassProp = base => {
@@ -649,8 +685,9 @@
                         clazz.name,
                         (buffer, index, value) => base._write(buffer, index, value, classCheck),
                         (buffer, index) => constructor(base.read(buffer, index)),
-                        value => base.size(value, classCheck),
-                        v => base.validate(v, clazz, classCheck)
+                        value => base.getSize(value, classCheck),
+                        v => base.validate(v, clazz, classCheck),
+                        () => base.makeSample(constructor)
                     );
                 };
                 return base;
@@ -660,7 +697,7 @@
                 const readFn = readFnMatch[lengthBytes];
                 const writeFn = writeFnMatch[lengthBytes];
                 return addClassProp(this.__makeBin(
-                    `object<string, ${type.name}>`,
+                    `object<string, ${type[nameSymbol]}>`,
                     (buffer, index, value, condition = () => true) => {
                         const entries = Object.entries(value).filter(i => condition(i[1]));
                         let length = entries.length;
@@ -685,24 +722,28 @@
                     },
                     (value, condition = () => true) => {
                         return lengthBytes + Object.entries(value).reduce((sum, [key, item]) =>
-                            sum + (condition(item) && this.string.size(key) + type.size(item)), 0);
+                            sum + (condition(item) && this.string.getSize(key) + type.getSize(item)), 0);
                     },
                     (v, clazz = Object, condition = () => true) => {
-                        if (v === null || typeof v !== "object" || v.constructor !== clazz) return "Expected a raw object";
+                        if (v === null || typeof v !== "object") return "Invalid object";
+                        if (v.constructor !== clazz && (clazz !== Object || !v[structSymbol])) {
+                            return clazz === Object ? "Expected a raw object" : `Expected an instance of ${clazz.name}`;
+                        }
                         for (const [key, item] of Object.entries(v)) {
                             if (!condition(item)) continue;
                             const err = type.validate(item);
                             if (err) return `[${JSON.stringify(key)}]${err[0] === "[" ? "" : ": "}${err}`;
                         }
-                    }
+                    },
+                    this.object.makeSample
                 ));
             };
             this.object.struct = obj => {
                 if (typeof obj !== "object") throw new Error("Expected an object for the struct definition");
                 if (obj.constructor !== Object) throw new Error("Expected an object for the struct definition");
                 const struct = Object.entries(obj).sort((a, b) => a[0].localeCompare(b[0]));
-                return addClassProp(this.__makeBin(
-                    `{${struct.map(([key, type]) => `${JSON.stringify(key)}: ${type.name}`).join(", ")}}`,
+                const binData = addClassProp(this.__makeBin(
+                    `{${struct.map(([key, type]) => `${JSON.stringify(key)}: ${type[nameSymbol]}`).join(", ")}}`,
                     (buffer, index, value) => {
                         for (const [key, type] of struct) {
                             type._write(buffer, index, value[key]);
@@ -715,16 +756,51 @@
                         }
                         return value;
                     },
-                    value => struct.reduce((sum, [key, type]) => sum + type.size(value[key]), 0),
+                    value => struct.reduce((sum, [key, type]) => sum + type.getSize(value[key]), 0),
                     (v, clazz = Object) => {
-                        if (v === null || typeof v !== "object" || v.constructor !== clazz) return clazz === Object ? "Expected a raw object" : `Expected an instance of ${clazz.name}`;
+                        if (v === null || typeof v !== "object") return "Invalid object";
+                        if (v.constructor !== clazz && (clazz !== Object || !v[structSymbol])) {
+                            return clazz === Object ? "Expected a raw object" : `Expected an instance of ${clazz.name}`;
+                        }
 
                         for (const [key, type] of struct) {
                             const err = type.validate(v[key]);
                             if (err) return `[${JSON.stringify(key)}]${err[0] === "[" ? "" : ": "}${err}`;
                         }
+                    },
+                    (constructor = r => r) => {
+                        const obj = {};
+                        for (const [key, type] of struct) {
+                            obj[key] = type.makeSample();
+                        }
+                        return constructor(obj);
                     }
                 ));
+                const structKeys = struct.map(i => i[0]);
+                const classKeys = ["getSize", "validate", "buffer", structSymbol];
+                const canInstantiate = classKeys.every(i => !structKeys.includes(i));
+                const Struct = function () {
+                    if (!canInstantiate) throw new Error("Cannot instantiate this struct because it includes the following properties: " + classKeys.filter(i => structKeys.includes(i)).join(", "));
+                    if (!(this instanceof Struct)) return new Struct();
+                    this.getSize = () => binData.getSize(this);
+                    this.validate = () => binData.validate(this);
+                    Object.defineProperty(this, "buffer", {
+                        get: () => binData.serialize(this),
+                        set: buffer => {
+                            const dat = binData.deserialize(buffer);
+                            for (const [key] of struct) {
+                                this[key] = dat[key];
+                            }
+                        }
+                    });
+                    for (const [key, type] of struct) {
+                        this[key] = type.makeSample();
+                    }
+                    this[structSymbol] = true;
+                    return this;
+                };
+                Object.assign(Struct, binData);
+                return Struct;
             };
 
             this.map = this.bins[this.mapId = this.__registerBin(
@@ -751,17 +827,18 @@
                     return value;
                 },
                 value => {
-                    return 1 + [...value].reduce((sum, [key, item]) => sum + this.size(key) + this.size(item) + 2, 0);
+                    return 1 + [...value].reduce((sum, [key, item]) => sum + this.getSize(key) + this.getSize(item) + 2, 0);
                 },
                 v => {
                     if (v === null || typeof v !== "object" || !(v instanceof Map)) return "Expected an instance of Map";
-                }
+                },
+                () => new Map
             )];
             this.map.typed = (keyType, valueType, lengthBytes = 2) => {
                 const readFn = readFnMatch[lengthBytes];
                 const writeFn = writeFnMatch[lengthBytes];
                 return addClassProp(this.__makeBin(
-                    `map<${keyType.name}, ${valueType.name}>`,
+                    `map<${keyType[nameSymbol]}, ${valueType[nameSymbol]}>`,
                     (buffer, index, value) => {
                         // I used length because if I don"t, this causes a bug: new Map([[1, 2]]), resulting in a buffer that starts with the map break byte.
                         const val = [...value];
@@ -783,7 +860,7 @@
                         }
                         return value;
                     },
-                    value => lengthBytes + [...value].reduce((sum, [key, item]) => sum + keyType.size(key) + valueType.size(item), 0),
+                    value => lengthBytes + [...value].reduce((sum, [key, item]) => sum + keyType.getSize(key) + valueType.getSize(item), 0),
                     v => {
                         if (v === null || typeof v !== "object" || !(v instanceof Map)) return "Expected an instance of Map";
 
@@ -794,7 +871,8 @@
                             err = valueType.validate(item);
                             if (err) return `[${JSON.stringify(key)}][value]${err[0] === "[" ? "" : ": "}${err}`;
                         }
-                    }
+                    },
+                    () => new Map
                 ));
             };
 
@@ -812,7 +890,8 @@
                 () => 8,
                 v => {
                     if (v === null || typeof v !== "object" || !(v instanceof Date)) return "Expected an instance of Date";
-                }
+                },
+                () => new Date(0)
             )];
 
 
@@ -829,11 +908,12 @@
                     index[0] += 2;
                     return this.classes[classId][1](this.object.read(buffer, index));
                 },
-                value => this.object.size(value, classCheck) + 2,
+                value => this.object.getSize(value, classCheck) + 2,
                 v => {
                     if (v === null || typeof v !== "object") return "Expected an instance of a class";
                     if (!this.classes.some(i => i[0] === v.constructor)) return `Unknown class: ${v.constructor.name}`;
-                }
+                },
+                () => null
             )];
 
             this.any = this.bins[this.anyId = this.__registerBin(
@@ -850,8 +930,9 @@
                 },
                 () => 2,
                 v => {
-                    if (!this.anyList.includes(v)) return `Unknown any: ${v.name}`;
-                }
+                    if (!this.anyList.includes(v)) return `Unknown any: ${v}`;
+                },
+                () => null
             )];
         };
     }
