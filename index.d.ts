@@ -26,11 +26,20 @@ type ArrayBin<T = any[]> = {
     serialize(value: any): Buffer;
     deserialize(buffer: Buffer): T;
     makeSample(): T;
+};
 
-    typed<K>(type: Bin<K>, length?: number, lengthBytes?: number): ArrayBin<K[]>;
-    typed<K>(type: ArrayBin<K>, length?: number, lengthBytes?: number): ArrayBin<K[]>;
-    typed<K>(type: ObjectBin<K>, length?: number, lengthBytes?: number): ArrayBin<K[]>;
-    struct<K extends Bin[]>(types: K): ArrayBin<K[number]["__TYPE__"]>;
+type NormalArrayBin<T = any[]> = ArrayBin<T> & {
+    typed<K>(type: AnyBin<K>, length?: number, lengthBytes?: number): NormalArrayBin<K[]>;
+    struct<K extends Bin[]>(types: K): NormalArrayBin<K[number]["__TYPE__"]>;
+};
+
+type SetBin<T = Set<any>> = ArrayBin<T> & {
+    typed<K>(type: AnyBin<K>, length?: number, lengthBytes?: number): SetBin<Set<K>>;
+    struct<K extends AnyBin<any>[]>(types: K): SetBin<K[number]["__TYPE__"]>;
+};
+
+type TypedArrayBin<T> = ArrayBin<T> & {
+    fixed(length: number, lengthBytes?: number): TypedArrayBin<T>;
 };
 
 type ObjectStruct<Obj> = Obj & {
@@ -52,10 +61,8 @@ type ObjectBin<Obj = Record<string, any>> = {
     deserialize(buffer: Buffer): Obj;
     makeSample<K>(clazz?: K): (K extends Class ? InstanceType<K> : {}) & Obj;
 
-    typed<K>(type: Bin<K>, length?: number, lengthBytes?: number): ObjectBin<Record<string, K>>;
-    typed<K>(type: ArrayBin<K>, length?: number, lengthBytes?: number): ObjectBin<Record<string, K>>;
-    typed<K>(type: ObjectBin<K>, length?: number, lengthBytes?: number): ObjectBin<Record<string, K>>;
-    struct<K extends Record<string, AnyBin>, KObj = { [L in keyof K]: K[L]["__TYPE__"]; }>(struct: K):
+    typed<K>(type: AnyBin<K>, length?: number, lengthBytes?: number): ObjectBin<Record<string, K>>;
+    struct<K extends Record<string, AnyBin<any>>, KObj = { [L in keyof K]: K[L]["__TYPE__"]; }>(struct: K):
         ObjectBin<KObj>
         // & (() => ObjectStruct<KObj>) // I commented this because when I tabbed after typing myStruc(auto complete),
         // it added () after the autocomplete thinking it's a function. You can still use it like myStruct(), "new" is not forced.
@@ -79,28 +86,18 @@ type MapBin<Obj = Map<string, any>> = {
     serialize(value: Obj): Buffer;
     deserialize(buffer: Buffer): Obj;
 
-    typed<K, V>(keyType: Bin<K>, valueType: Bin<V>, length?: number, lengthBytes?: number): MapBin<Map<K, V>>;
-    typed<K, V>(keyType: Bin<K>, valueType: ArrayBin<V>, length?: number, lengthBytes?: number): MapBin<Map<K, V>>;
-    typed<K, V>(keyType: Bin<K>, valueType: ObjectBin<V>, length?: number, lengthBytes?: number): MapBin<Map<K, V>>;
-
-    typed<K, V>(keyType: ArrayBin<K>, valueType: Bin<V>, length?: number, lengthBytes?: number): MapBin<Map<K, V>>;
-    typed<K, V>(keyType: ArrayBin<K>, valueType: ArrayBin<V>, length?: number, lengthBytes?: number): MapBin<Map<K, V>>;
-    typed<K, V>(keyType: ArrayBin<K>, valueType: ObjectBin<V>, length?: number, lengthBytes?: number): MapBin<Map<K, V>>;
-
-    typed<K, V>(keyType: ObjectBin<K>, valueType: Bin<V>, length?: number, lengthBytes?: number): MapBin<Map<K, V>>;
-    typed<K, V>(keyType: ObjectBin<K>, valueType: ArrayBin<V>, length?: number, lengthBytes?: number): MapBin<Map<K, V>>;
-    typed<K, V>(keyType: ObjectBin<K>, valueType: ObjectBin<V>, length?: number, lengthBytes?: number): MapBin<Map<K, V>>;
+    typed<K, V>(keyType: AnyBin<K>, valueType: AnyBin<V>, length?: number, lengthBytes?: number): MapBin<Map<K, V>>;
     makeSample(): MapBin<Obj>;
 };
 
-type AnyBin = Bin | ArrayBin | ObjectBin;
+type AnyBin<T> = Bin<T> | NormalArrayBin<T> | SetBin<T> | TypedArrayBin<T> | ObjectBin<T>;
 
 type FlaggedBuffer<T> = Buffer & {
     __type__: T;
 };
 
 declare class __ModuleBinJSVar__ {
-    bins: AnyBin[];
+    bins: AnyBin<any>[];
     anyList: any[];
     classes: _classDef[];
 
@@ -197,20 +194,20 @@ declare class __ModuleBinJSVar__ {
     string16: Bin<string>;
     string32: Bin<string>;
     string: Bin<string>;
-    array: ArrayBin;
-    set: ArrayBin<Set<any>>;
-    u8clampedArray: ArrayBin<Uint8ClampedArray>;
-    u8array: ArrayBin<Uint8Array>;
-    u16array: ArrayBin<Uint16Array>;
-    u32array: ArrayBin<Uint32Array>;
-    u64array: ArrayBin<BigUint64Array>;
-    i8array: ArrayBin<Int8Array>;
-    i16array: ArrayBin<Int16Array>;
-    i32array: ArrayBin<Int32Array>;
-    i64array: ArrayBin<BigInt64Array>;
-    f32array: ArrayBin<Float32Array>;
-    f64array: ArrayBin<Float64Array>;
-    arrayBuffer: ArrayBin<ArrayBuffer>;
+    array: NormalArrayBin;
+    set: SetBin;
+    u8clampedArray: TypedArrayBin<Uint8ClampedArray>;
+    u8array: TypedArrayBin<Uint8Array>;
+    u16array: TypedArrayBin<Uint16Array>;
+    u32array: TypedArrayBin<Uint32Array>;
+    u64array: TypedArrayBin<BigUint64Array>;
+    i8array: TypedArrayBin<Int8Array>;
+    i16array: TypedArrayBin<Int16Array>;
+    i32array: TypedArrayBin<Int32Array>;
+    i64array: TypedArrayBin<BigInt64Array>;
+    f32array: TypedArrayBin<Float32Array>;
+    f64array: TypedArrayBin<Float64Array>;
+    arrayBuffer: TypedArrayBin<ArrayBuffer>;
     object: ObjectBin;
     map: MapBin;
     date: Bin<Date>;

@@ -1,4 +1,5 @@
 # JSBinary
+
 A JavaScript library that can convert any kind of data into binary that can be restored
 
 # Installation
@@ -37,6 +38,22 @@ const buf = BinJS.serialize(obj)
 console.log(buf) // <Buffer 26 61 00 0a 0a 62 00 14 0d 68 65 6c 6c 6f 2c 20 77 6f 72 6c 64 21 63 00 26 78 00 0a 32 79 00 0a 64 01 01>
 
 console.log(BinJS.deserialize(buf)) // { a: 10, b: 'hello, world!', c: { x: 50, y: 100 } }
+```
+
+## Using built-in arrays with fixed length
+
+This gains 2 bytes in the output buffer size, and it cannot be further shortened.
+
+```js
+const BinJS = require("stramp")
+
+const U8ArrayWith10Numbers = BinJS.u8array.fixed(10)
+
+const buf = U8ArrayWith10Numbers.serialize(new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]))
+
+console.log(buf) // <Buffer 01 02 03 04 05 06 07 08 09 0a>
+
+console.log(U8ArrayWith10Numbers.deserialize(buf)) // Uint8Array [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ]
 ```
 
 ## Structured and typed arrays/objects

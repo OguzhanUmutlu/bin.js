@@ -626,6 +626,7 @@
                     };
                     return bin;
                 };
+                return array;
             };
             addArrayProps(this.array);
 
@@ -643,20 +644,20 @@
             this.f64arrayId = 0;
             this.arrayBufferId = 0;
 
-            for (const [name1, name2, clazz] of [
+            for (const [name1, name2, clazz, type] of [
                 ["set", "setId", Set],
-                ["u8clampedArray", "u8clampedArrayId", Uint8ClampedArray],
-                ["u8array", "u8arrayId", Uint8Array],
-                ["u16array", "u16arrayId", Uint16Array],
-                ["u32array", "u32arrayId", Uint32Array],
-                ["u64array", "u64arrayId", BigUint64Array],
-                ["i8array", "i8arrayId", Int8Array],
-                ["i16array", "i16arrayId", Int16Array],
-                ["i32array", "i32arrayId", Int32Array],
-                ["i64array", "i64arrayId", BigInt64Array],
-                ["f32array", "f32arrayId", Float32Array],
-                ["f64array", "f64arrayId", Float64Array],
-                ["arrayBuffer", "arrayBufferId", ArrayBuffer]
+                ["u8clampedArray", "u8clampedArrayId", Uint8ClampedArray, this.u8],
+                ["u8array", "u8arrayId", Uint8Array, this.u8],
+                ["u16array", "u16arrayId", Uint16Array, this.u16],
+                ["u32array", "u32arrayId", Uint32Array, this.u32],
+                ["u64array", "u64arrayId", BigUint64Array, this.u64],
+                ["i8array", "i8arrayId", Int8Array, this.i8],
+                ["i16array", "i16arrayId", Int16Array, this.i16],
+                ["i32array", "i32arrayId", Int32Array, this.i32],
+                ["i64array", "i64arrayId", BigInt64Array, this.i64],
+                ["f32array", "f32arrayId", Float32Array, this.f32],
+                ["f64array", "f64arrayId", Float64Array, this.f64],
+                ["arrayBuffer", "arrayBufferId", ArrayBuffer, this.u8]
             ]) {
                 addArrayProps(this[name1] = this.bins[this[name2] = this.__registerBin(
                     clazz.name,
@@ -670,6 +671,11 @@
                     value => this.array.validate([...value]),
                     () => new clazz(this.array.makeSample())
                 )], clazz, v => new clazz(v));
+                if (type) {
+                    const original = this[name1];
+                    const bin = this[name1] = original.typed(type);
+                    bin.fixed = (length, lengthBytes = 2) => original.typed(type, length, lengthBytes);
+                }
             }
 
             this.object = this.bins[this.objectId = this.__registerBin(

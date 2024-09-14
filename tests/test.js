@@ -1,20 +1,9 @@
-const B = require("../index");
+const BinJS = require("../index");
 
-class Vector {
-    constructor(x, y) {
-        this.x = x
-        this.y = y
-    }
-}
+const U8ArrayWith10Numbers = BinJS.u8array.fixed(10)
 
-const VectorStruct = B.object.structClass(new Vector(-1000, -1000)) // And that's it!
-// This will do this: BinJS.object.struct({ x: i16, y: i16 }).class(Vector)
-// The con: The types of the properties are minimally selected. Like if it was 1000,1000 it would have gone with u16 instead of i16.
+const buf = U8ArrayWith10Numbers.serialize(new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]))
 
-const myVec = new Vector(10, 20)
+console.log(buf) // <Buffer 01 02 03 04 05 06 07 08 09 0a>
 
-const buf = VectorStruct.serialize(myVec)
-
-console.log(buf) // <Buffer 0a 14>
-
-console.log(VectorStruct.deserialize(buf)) // Vector { x: 10, y: 20 }
+console.log(U8ArrayWith10Numbers.deserialize(buf)) // Uint8Array [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ]
