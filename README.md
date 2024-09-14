@@ -180,5 +180,5 @@ const buf = BinJS.serialize({date, arr, set, map})
 
 console.log(buf) // <Buffer 26 64 61 74 65 00 28 58 a3 a3 e1 91 01 00 00 61 72 72 00 1c 0a 01 0a 02 0a 03 01 73 65 74 00 19 0a 01 0a 02 0a 03 01 6d 61 70 00 27 0a 01 0a 02 0a 03 ... 4 more bytes>
 
-console.log(BinJS.deserialize(buf)) // { date: 10, arr: [ 1, 2, 3 ], set: [ 1, 2, 3 ], map: [ [ 1, 2 ], [ 3, 4 ] ] }
+console.log(BinJS.deserialize(buf)) // { date: 2024-09-14T07:37:04.402Z, arr: Uint16Array(3) [ 1, 2, 3 ], set: Set(3) { 1, 2, 3 }, map: Map(2) { 1 => 2, 3 => 4 } }
 ```
