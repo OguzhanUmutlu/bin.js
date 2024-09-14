@@ -106,7 +106,7 @@ declare class __ModuleBinJSVar__ {
 
     valueToBinId(value: any): number;
 
-    valueToBin<T>(value: T): Bin<T>;
+    getTypeOf<T>(value: T): Bin<T>;
 
     serialize<T>(value: T): FlaggedBuffer<T>;
 

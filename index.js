@@ -112,7 +112,7 @@
             return this.anyId;
         };
 
-        valueToBin(value) {
+        getTypeOf(value) {
             return this.bins[this.valueToBinId(value)];
         };
 
@@ -129,7 +129,7 @@
         };
 
         getSize(value) {
-            return this.valueToBin(value).getSize(value);
+            return this.getTypeOf(value).getSize(value);
         };
 
         __makeBin(name, write, read, size, validate, sample) {
