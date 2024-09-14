@@ -707,11 +707,12 @@
             )];
             const classCheck = item => typeof item !== "function" || this.anyList.includes(item);
             const addClassProp = base => {
-                base.class = (clazz, constructor = obj => {
-                    const instance = new clazz();
-                    for (const k in obj) if (k !== "constructor") instance[k] = obj[k];
-                    return instance;
-                }) => {
+                base.class = (clazz, constructor) => {
+                    constructor ||= obj => {
+                        const instance = new clazz();
+                        for (const k in obj) if (k !== "constructor") instance[k] = obj[k];
+                        return instance;
+                    };
                     const bin = this.__makeBin(
                         clazz.name,
                         (buffer, index, value) => base._write(buffer, index, value, classCheck),
@@ -848,6 +849,14 @@
                 };
                 Object.assign(Struct, binData);
                 return Struct;
+            };
+            this.object.structClass = (sample, constructor) => {
+                const obj = {};
+                for (const [key, item] of Object.entries(sample)) {
+                    if (!classCheck(item)) continue;
+                    obj[key] = this.getTypeOf(item);
+                }
+                return this.object.struct(obj).class(sample.constructor, constructor);
             };
 
             this.map = this.bins[this.mapId = this.__registerBin(

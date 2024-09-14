@@ -61,6 +61,11 @@ type ObjectBin<Obj = Record<string, any>> = {
         // it added () after the autocomplete thinking it's a function. You can still use it like myStruct(), "new" is not forced.
         & (new () => ObjectStruct<KObj>);
     class<K>(clazz: K, constructor?: (obj: any) => K): ObjectBin<K>;
+    /**
+     * @description It is highly recommended to use .struct().class() combination instead as it is more consistent.
+     *   For example if your class sample has a property with the value 2, it will use u8, but it might be an u32.
+     */
+    structClass<K>(sample: K, constructor?: (obj: any) => K): ObjectBin<K>;
 };
 
 type MapBin<Obj = Map<string, any>> = {
