@@ -54,7 +54,8 @@ const Person = object.struct({
 // creates a dynamically sized array that includes Person struct
 const People = array.typed(Person)
 // Max length of the array is 2^16 = 65536, you can change it like this:
-// const people = array.typed(person, 4)
+// const people = array.typed(person, null, 4)
+// The second argument indicates the length of the array, null means it can be anything.
 // This will use 4 bytes, resulting with a u32 int, 2^32 = 4294967295
 // Length bytes options: 1, 2, 4, 8
 

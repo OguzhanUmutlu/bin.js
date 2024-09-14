@@ -1,21 +1,9 @@
-const BinJS = require("../index");
+const B = require("../index");
 
-class Vec2 {
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
-    }
-}
+const x = 314159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706n;
 
-const Vec2Struct = BinJS.object.struct({
-    x: BinJS.u8,
-    y: BinJS.u8
-}).class(Vec2, ({x, y}) => new Vec2(x, y));
+const buf = B.serialize(x);
 
-const myVec = new Vec2(10, 20);
+console.log(buf, buf.length);
 
-const buf = Vec2Struct.serialize(myVec);
-
-console.log(buf);
-
-console.log(Vec2Struct.deserialize(buf));
+console.log(B.deserialize(buf));

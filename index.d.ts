@@ -27,9 +27,9 @@ type ArrayBin<T = any> = {
     deserialize(buffer: Buffer): T[];
     makeSample(): ArrayBin<T>;
 
-    typed<K>(type: Bin<K>, lengthBytes?: number): ArrayBin<K>;
-    typed<K>(type: ArrayBin<K>, lengthBytes?: number): ArrayBin<K>;
-    typed<K>(type: ObjectBin<K>, lengthBytes?: number): ArrayBin<K>;
+    typed<K>(type: Bin<K>, length?: number, lengthBytes?: number): ArrayBin<K>;
+    typed<K>(type: ArrayBin<K>, length?: number, lengthBytes?: number): ArrayBin<K>;
+    typed<K>(type: ObjectBin<K>, length?: number, lengthBytes?: number): ArrayBin<K>;
     struct<K extends Bin[]>(types: K): ArrayBin<K[number]["__TYPE__"]>;
 };
 
@@ -40,7 +40,7 @@ type ObjectStruct<Obj> = Obj & {
     set buffer(v: Buffer);
 };
 
-type ObjectBin<Obj = Record<string, any>, AllowsStruct = true> = {
+type ObjectBin<Obj = Record<string, any>> = {
     __TYPE__: Obj;
     name: string;
     write(buffer: Buffer, index: [number], value: Obj, condition?: (key: any, item: any) => boolean): void;
@@ -52,16 +52,15 @@ type ObjectBin<Obj = Record<string, any>, AllowsStruct = true> = {
     deserialize(buffer: Buffer): Obj;
     makeSample<K>(clazz?: K): (K extends Class ? InstanceType<K> : {}) & Obj;
 
-    typed<K>(type: Bin<K>, lengthBytes?: number): AllowsStruct extends true ? ObjectBin<Record<string, K>> : never;
-    typed<K>(type: ArrayBin<K>, lengthBytes?: number): AllowsStruct extends true ? ObjectBin<Record<string, K>> : never;
-    typed<K>(type: ObjectBin<K>, lengthBytes?: number): AllowsStruct extends true ? ObjectBin<Record<string, K>> : never;
+    typed<K>(type: Bin<K>, length?: number, lengthBytes?: number): ObjectBin<Record<string, K>>;
+    typed<K>(type: ArrayBin<K>, length?: number, lengthBytes?: number): ObjectBin<Record<string, K>>;
+    typed<K>(type: ObjectBin<K>, length?: number, lengthBytes?: number): ObjectBin<Record<string, K>>;
     struct<K extends Record<string, AnyBin>, KObj = { [L in keyof K]: K[L]["__TYPE__"]; }>(struct: K):
-        AllowsStruct extends true ?
-            ObjectBin<KObj>
-            // & (() => ObjectStruct<KObj>) // I commented this because when I tabbed after typing myStruc(auto complete),
-            // it added () after the autocomplete thinking it's a function. You can still use it like myStruct(), "new" is not forced.
-            & (new () => ObjectStruct<KObj>) : never;
-    class<K>(clazz: K, constructor?: (obj: any) => K): ObjectBin<K, false>;
+        ObjectBin<KObj>
+        // & (() => ObjectStruct<KObj>) // I commented this because when I tabbed after typing myStruc(auto complete),
+        // it added () after the autocomplete thinking it's a function. You can still use it like myStruct(), "new" is not forced.
+        & (new () => ObjectStruct<KObj>);
+    class<K>(clazz: K, constructor?: (obj: any) => K): ObjectBin<K>;
 };
 
 type MapBin<Obj = Map<string, any>> = {
@@ -75,24 +74,24 @@ type MapBin<Obj = Map<string, any>> = {
     serialize(value: Obj): Buffer;
     deserialize(buffer: Buffer): Obj;
 
-    typed<K, V>(keyType: Bin<K>, valueType: Bin<V>, lengthBytes?: number): MapBin<Map<K, V>>;
-    typed<K, V>(keyType: Bin<K>, valueType: ArrayBin<V>, lengthBytes?: number): MapBin<Map<K, V>>;
-    typed<K, V>(keyType: Bin<K>, valueType: ObjectBin<V>, lengthBytes?: number): MapBin<Map<K, V>>;
+    typed<K, V>(keyType: Bin<K>, valueType: Bin<V>, length?: number, lengthBytes?: number): MapBin<Map<K, V>>;
+    typed<K, V>(keyType: Bin<K>, valueType: ArrayBin<V>, length?: number, lengthBytes?: number): MapBin<Map<K, V>>;
+    typed<K, V>(keyType: Bin<K>, valueType: ObjectBin<V>, length?: number, lengthBytes?: number): MapBin<Map<K, V>>;
 
-    typed<K, V>(keyType: ArrayBin<K>, valueType: Bin<V>, lengthBytes?: number): MapBin<Map<K, V>>;
-    typed<K, V>(keyType: ArrayBin<K>, valueType: ArrayBin<V>, lengthBytes?: number): MapBin<Map<K, V>>;
-    typed<K, V>(keyType: ArrayBin<K>, valueType: ObjectBin<V>, lengthBytes?: number): MapBin<Map<K, V>>;
+    typed<K, V>(keyType: ArrayBin<K>, valueType: Bin<V>, length?: number, lengthBytes?: number): MapBin<Map<K, V>>;
+    typed<K, V>(keyType: ArrayBin<K>, valueType: ArrayBin<V>, length?: number, lengthBytes?: number): MapBin<Map<K, V>>;
+    typed<K, V>(keyType: ArrayBin<K>, valueType: ObjectBin<V>, length?: number, lengthBytes?: number): MapBin<Map<K, V>>;
 
-    typed<K, V>(keyType: ObjectBin<K>, valueType: Bin<V>, lengthBytes?: number): MapBin<Map<K, V>>;
-    typed<K, V>(keyType: ObjectBin<K>, valueType: ArrayBin<V>, lengthBytes?: number): MapBin<Map<K, V>>;
-    typed<K, V>(keyType: ObjectBin<K>, valueType: ObjectBin<V>, lengthBytes?: number): MapBin<Map<K, V>>;
+    typed<K, V>(keyType: ObjectBin<K>, valueType: Bin<V>, length?: number, lengthBytes?: number): MapBin<Map<K, V>>;
+    typed<K, V>(keyType: ObjectBin<K>, valueType: ArrayBin<V>, length?: number, lengthBytes?: number): MapBin<Map<K, V>>;
+    typed<K, V>(keyType: ObjectBin<K>, valueType: ObjectBin<V>, length?: number, lengthBytes?: number): MapBin<Map<K, V>>;
     makeSample(): MapBin<Obj>;
 };
 
 type AnyBin = Bin | ArrayBin | ObjectBin;
 
 type FlaggedBuffer<T> = Buffer & {
-    __type__: T
+    __type__: T;
 };
 
 declare class __ModuleBinJSVar__ {

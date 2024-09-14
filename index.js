@@ -13,6 +13,15 @@
         if (!bool) return `Invalid value(${JSON.stringify(val)})`;
     }
 
+    const warns = {};
+
+    function warnOnce(msg) {
+        if (!warns[msg]) {
+            warns[msg] = true;
+            console.warn(msg);
+        }
+    }
+
     const writeFnMatch = {1: "writeUint8", 2: "writeUint16LE", 4: "writeUint32LE", 8: "writeBigUint64LE"};
     const readFnMatch = {1: "readUint8", 2: "readUint16LE", 4: "readUint32LE", 8: "readBigUint64LE"};
 
@@ -370,7 +379,7 @@
                 () => 0
             )];
             this.bigintPos = this.bins[this.bigintPosId = this.__registerBin(
-                "bigintPos",
+                "+bigint",
                 (buffer, index, value) => {
                     let hex = BigInt(value).toString(16);
                     if (hex.length % 2 === 1) hex = "0" + hex;
@@ -397,7 +406,7 @@
                 () => 1n
             )];
             this.bigintNeg = this.bins[this.bigintNegId = this.__registerBin(
-                "bigintNeg",
+                "-bigint",
                 (buffer, index, value) => this.bigintPos.write(buffer, index, -value),
                 (buffer, index) => -this.bigintPos.read(buffer, index, 0),
                 value => this.bigintPos.getSize(-value),
@@ -529,34 +538,40 @@
             )];
 
             const addArrayProps = (array, clazz = Array, convert = r => r) => {
-                array.typed = (type, lengthBytes = 2) => {
+                array.typed = (type, fixedLength = null, lengthBytes = 2) => {
                     const readFn = readFnMatch[lengthBytes];
                     const writeFn = writeFnMatch[lengthBytes];
-                    return this.__makeBin(
-                        `array<${type[nameSymbol]}>`,
+                    const bin = this.__makeBin(
+                        `${array[nameSymbol]}<${type[nameSymbol]}>`,
                         (buffer, index, value) => {
                             // I used length because if I don"t, this causes a bug: [1, 2, 3], resulting in a buffer that starts with the array break byte.
                             let length = value.length;
-                            if (lengthBytes === 8) length = BigInt(length);
-                            buffer[writeFn](length, index[0]);
-                            index[0] += lengthBytes;
+                            if (fixedLength === null) {
+                                if (lengthBytes === 8) length = BigInt(length);
+                                buffer[writeFn](length, index[0]);
+                                index[0] += lengthBytes;
+                            }
                             for (let i = 0; i < value.length; i++) {
                                 const item = value[i];
                                 type._write(buffer, index, item);
                             }
                         },
                         (buffer, index) => {
-                            const length = Number(buffer[readFn](index[0]));
-                            index[0] += lengthBytes;
+                            let length = fixedLength;
+                            if (length === null) {
+                                length = Number(buffer[readFn](index[0]));
+                                index[0] += lengthBytes;
+                            }
                             const value = [];
                             for (let i = 0; i < length; i++) {
                                 value[i] = type.read(buffer, index);
                             }
                             return convert(value);
                         },
-                        value => lengthBytes + value.reduce((sum, item) => sum + type.getSize(item), 0),
+                        value => (fixedLength === null ? lengthBytes : 0) + value.reduce((sum, item) => sum + type.getSize(item), 0),
                         v => {
                             if (!(v instanceof clazz)) return `Expected an instance of ${clazz.name}`;
+                            if (fixedLength !== null && v.length !== fixedLength) return `Expected an array of length ${fixedLength}`;
                             for (let i = 0; i < v.length; i++) {
                                 const item = v[i];
                                 const err = type.validate(item);
@@ -565,9 +580,17 @@
                         },
                         () => []
                     );
+                    bin.typed = () => {
+                        warnOnce("array.typed().typed() is a no-op. To remove this warning please do just use array.typed()");
+                        return array.typed(length);
+                    };
+                    bin.struct = () => {
+                        throw new Error("The use of array.typed().struct() does not make sense. Use array.typed() or array.struct() instead.");
+                    };
+                    return bin;
                 };
                 array.struct = types => {
-                    return this.__makeBin(
+                    const bin = this.__makeBin(
                         `[${types.map(t => t[nameSymbol]).join(", ")}]`,
                         (buffer, index, value) => {
                             for (let i = 0; i < types.length; i++) {
@@ -595,6 +618,13 @@
                         },
                         () => types.map(t => t.makeSample())
                     );
+                    bin.typed = () => {
+                        throw new Error("The use of .struct().typed() is invalid.");
+                    };
+                    bin.struct = () => {
+                        throw new Error("The use of .struct().struct() is invalid.");
+                    };
+                    return bin;
                 };
             };
             addArrayProps(this.array);
@@ -693,8 +723,8 @@
                     bin.class = () => {
                         throw new Error("The use of .class().class() is invalid");
                     };
-                    bin.struct = () => {
-                        throw new Error("The use of .class().struct() is invalid. Try doing .struct().class() instead.");
+                    bin.struct = (...args) => {
+                        return base.struct(...args).class(clazz, constructor);
                     };
                     bin.typed = () => {
                         throw new Error("The use of .class().typed() is invalid. Try doing .typed().class() instead.");
@@ -704,27 +734,33 @@
                 return base;
             };
             addClassProp(this.object);
-            this.object.typed = (type, lengthBytes = 2) => {
+            this.object.typed = (type, fixedLength = null, lengthBytes = 2) => {
                 const readFn = readFnMatch[lengthBytes];
                 const writeFn = writeFnMatch[lengthBytes];
                 return addClassProp(this.__makeBin(
                     `object<string, ${type[nameSymbol]}>`,
                     (buffer, index, value, condition = () => true) => {
                         const entries = Object.entries(value).filter(i => condition(i[1]));
-                        let length = entries.length;
-                        if (lengthBytes === 8) length = BigInt(length);
 
-                        // I used length because if I don"t, this causes a bug: {"\x01": "hi"}, resulting in a buffer that starts with the object break byte.
-                        buffer[writeFn](length, index[0]);
-                        index[0] += lengthBytes;
+                        if (fixedLength === null) {
+                            // I used length because if I don"t, this causes a bug: {"\x01": "hi"}, resulting in a buffer that starts with the object break byte.
+                            let length = entries.length;
+                            if (lengthBytes === 8) length = BigInt(length);
+                            buffer[writeFn](length, index[0]);
+                            index[0] += lengthBytes;
+                        }
+
                         for (const [key, item] of entries) {
                             this.string._write(buffer, index, key);
                             type._write(buffer, index, item);
                         }
                     },
                     (buffer, index) => {
-                        const length = Number(buffer[readFn](index[0]));
-                        index[0] += lengthBytes;
+                        let length = fixedLength;
+                        if (length === null) {
+                            length = Number(buffer[readFn](index[0]));
+                            index[0] += lengthBytes;
+                        }
                         const value = {};
                         for (let i = 0; i < length; i++) {
                             value[this.string.read(buffer, index)] = type.read(buffer, index);
@@ -732,7 +768,7 @@
                         return value;
                     },
                     (value, condition = () => true) => {
-                        return lengthBytes + Object.entries(value).reduce((sum, [key, item]) =>
+                        return (fixedLength === null ? lengthBytes : 0) + Object.entries(value).reduce((sum, [key, item]) =>
                             sum + (condition(item) && this.string.getSize(key) + type.getSize(item)), 0);
                     },
                     (v, clazz = Object, condition = () => true) => {
