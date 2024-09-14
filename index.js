@@ -681,7 +681,7 @@
                     for (const k in obj) if (k !== "constructor") instance[k] = obj[k];
                     return instance;
                 }) => {
-                    return this.__makeBin(
+                    const bin = this.__makeBin(
                         clazz.name,
                         (buffer, index, value) => base._write(buffer, index, value, classCheck),
                         (buffer, index) => constructor(base.read(buffer, index)),
@@ -689,6 +689,16 @@
                         v => base.validate(v, clazz, classCheck),
                         () => base.makeSample(constructor)
                     );
+                    bin.class = () => {
+                        throw new Error("The use of .class().class() is invalid");
+                    };
+                    bin.struct = () => {
+                        throw new Error("The use of .class().struct() is invalid. Try doing .struct().class() instead.");
+                    };
+                    bin.typed = () => {
+                        throw new Error("The use of .class().typed() is invalid. Try doing .typed().class() instead.");
+                    };
+                    return bin;
                 };
                 return base;
             };

@@ -1,19 +1,21 @@
 const BinJS = require("../index");
 
-const Vec2 = BinJS.object.struct({
-    x: BinJS.f32,
-    y: BinJS.f32
-});
+class Vec2 {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+}
 
-const myVec = new Vec2;
+const Vec2Struct = BinJS.object.struct({
+    x: BinJS.u8,
+    y: BinJS.u8
+}).class(Vec2, ({x, y}) => new Vec2(x, y));
 
-console.log(myVec.x);
+const myVec = new Vec2(10, 20);
 
-const buf = myVec.buffer;
+const buf = Vec2Struct.serialize(myVec);
 
-buf[2] = 30;
-buf[3] = 65;
+console.log(buf);
 
-myVec.buffer = buf;
-
-console.log(myVec.x);
+console.log(Vec2Struct.deserialize(buf));

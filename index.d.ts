@@ -25,12 +25,12 @@ type ArrayBin<T = any> = {
     validate(value: any): string | void;
     serialize(value: any): Buffer;
     deserialize(buffer: Buffer): T[];
+    makeSample(): ArrayBin<T>;
 
     typed<K>(type: Bin<K>, lengthBytes?: number): ArrayBin<K>;
     typed<K>(type: ArrayBin<K>, lengthBytes?: number): ArrayBin<K>;
     typed<K>(type: ObjectBin<K>, lengthBytes?: number): ArrayBin<K>;
     struct<K extends Bin[]>(types: K): ArrayBin<K[number]["__TYPE__"]>;
-    makeSample(): ArrayBin<T>;
 };
 
 type ObjectStruct<Obj> = Obj & {
@@ -40,7 +40,7 @@ type ObjectStruct<Obj> = Obj & {
     set buffer(v: Buffer);
 };
 
-type ObjectBin<Obj = Record<string, any>> = {
+type ObjectBin<Obj = Record<string, any>, AllowsStruct = true> = {
     __TYPE__: Obj;
     name: string;
     write(buffer: Buffer, index: [number], value: Obj, condition?: (key: any, item: any) => boolean): void;
@@ -50,19 +50,18 @@ type ObjectBin<Obj = Record<string, any>> = {
     validate(value: Obj, clazz?: Class, condition?: (key: any, item: any) => boolean): string | void;
     serialize(value: Obj, condition?: (key: any, item: any) => boolean): Buffer;
     deserialize(buffer: Buffer): Obj;
-
-    typed<K>(type: Bin<K>, lengthBytes?: number): ObjectBin<Record<string, K>>;
-    typed<K>(type: ArrayBin<K>, lengthBytes?: number): ObjectBin<Record<string, K>>;
-    typed<K>(type: ObjectBin<K>, lengthBytes?: number): ObjectBin<Record<string, K>>;
-    struct<K extends Record<string, AnyBin>, KObj = { [L in keyof K]: K[L]["__TYPE__"]; }>(struct: K):
-        ObjectBin<KObj>
-
-        // & (() => ObjectStruct<KObj>) // I commented this because when I tabbed after typing myStruc(auto complete),
-        // it added () after the autocomplete thinking it's a function. You can still use it like myStruct(), "new" is not forced.
-
-        & (new () => ObjectStruct<KObj>);
-    class<K>(clazz: K): ObjectBin<K>;
     makeSample<K>(clazz?: K): (K extends Class ? InstanceType<K> : {}) & Obj;
+
+    typed<K>(type: Bin<K>, lengthBytes?: number): AllowsStruct extends true ? ObjectBin<Record<string, K>> : never;
+    typed<K>(type: ArrayBin<K>, lengthBytes?: number): AllowsStruct extends true ? ObjectBin<Record<string, K>> : never;
+    typed<K>(type: ObjectBin<K>, lengthBytes?: number): AllowsStruct extends true ? ObjectBin<Record<string, K>> : never;
+    struct<K extends Record<string, AnyBin>, KObj = { [L in keyof K]: K[L]["__TYPE__"]; }>(struct: K):
+        AllowsStruct extends true ?
+            ObjectBin<KObj>
+            // & (() => ObjectStruct<KObj>) // I commented this because when I tabbed after typing myStruc(auto complete),
+            // it added () after the autocomplete thinking it's a function. You can still use it like myStruct(), "new" is not forced.
+            & (new () => ObjectStruct<KObj>) : never;
+    class<K>(clazz: K, constructor?: (obj: any) => K): ObjectBin<K, false>;
 };
 
 type MapBin<Obj = Map<string, any>> = {
@@ -106,6 +105,8 @@ declare class __ModuleBinJSVar__ {
     }): void;
 
     valueToBinId(value: any): number;
+
+    valueToBin<T>(value: T): Bin<T>;
 
     serialize<T>(value: T): FlaggedBuffer<T>;
 

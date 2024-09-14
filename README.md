@@ -89,6 +89,26 @@ myPerson.buffer = buf2 // Load it back
 
 console.log(myPerson) // Struct { age: 30, height: 180, name: 'Jo(n' }
 // Apparently we changed the name to 'Jo(n'
+
+class Vector {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+    };
+}
+
+const VectorStruct = object.struct({
+    x: u8,
+    y: u8
+}).class(Vector, ({x, y}) => new Vector(x, y));
+
+const myVec = new Vector(10, 20);
+
+const buf = VectorStruct.serialize(myVec);
+
+console.log(buf); // <Buffer 0a 14>
+
+console.log(VectorStruct.deserialize(buf)); // Vector { x: 10, y: 20 }
 ```
 
 ## Storing classes
