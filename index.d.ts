@@ -27,9 +27,9 @@ type ArrayBin<T = any[]> = {
     deserialize(buffer: Buffer): T;
     makeSample(): T;
 
-    typed<K>(type: Bin<K>, length?: number, lengthBytes?: number): ArrayBin<K>;
-    typed<K>(type: ArrayBin<K>, length?: number, lengthBytes?: number): ArrayBin<K>;
-    typed<K>(type: ObjectBin<K>, length?: number, lengthBytes?: number): ArrayBin<K>;
+    typed<K>(type: Bin<K>, length?: number, lengthBytes?: number): ArrayBin<K[]>;
+    typed<K>(type: ArrayBin<K>, length?: number, lengthBytes?: number): ArrayBin<K[]>;
+    typed<K>(type: ObjectBin<K>, length?: number, lengthBytes?: number): ArrayBin<K[]>;
     struct<K extends Bin[]>(types: K): ArrayBin<K[number]["__TYPE__"]>;
 };
 
