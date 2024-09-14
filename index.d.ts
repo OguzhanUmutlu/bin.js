@@ -9,23 +9,23 @@ type Bin<V = any> = {
     validate(value: any): string | void;
     serialize(value: any): Buffer;
     deserialize(buffer: Buffer): any;
-    makeSample(): Bin<V>;
+    makeSample(): V;
 };
 
 type Class<T = any, K extends T = any> = new (...args: any[]) => K;
 type _classDef<T = any> = [Class<T, T>, (obj: any) => T];
 
-type ArrayBin<T = any> = {
-    __TYPE__: T[];
+type ArrayBin<T = any[]> = {
+    __TYPE__: T;
     name: string;
-    write(buffer: Buffer, index: [number], value: T[]): void;
-    _write(buffer: Buffer, index: [number], value: T[]): void;
-    read(buffer: Buffer, index: [number]): T[];
+    write(buffer: Buffer, index: [number], value: T): void;
+    _write(buffer: Buffer, index: [number], value: T): void;
+    read(buffer: Buffer, index: [number]): T;
     size(value: any): number;
     validate(value: any): string | void;
     serialize(value: any): Buffer;
-    deserialize(buffer: Buffer): T[];
-    makeSample(): ArrayBin<T>;
+    deserialize(buffer: Buffer): T;
+    makeSample(): T;
 
     typed<K>(type: Bin<K>, length?: number, lengthBytes?: number): ArrayBin<K>;
     typed<K>(type: ArrayBin<K>, length?: number, lengthBytes?: number): ArrayBin<K>;
