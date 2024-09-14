@@ -4,6 +4,7 @@
     const module_ = get("module");
 
     const Buffer = global_.Buffer || require("buffer").Buffer;
+    if (!("Buffer" in global_)) global_.Buffer = Buffer;
 
     const nameSymbol = Symbol("BinName");
     const structSymbol = Symbol("BinStruct");
