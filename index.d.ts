@@ -5,8 +5,9 @@ type Bin<V = any> = {
     write(buffer: Buffer, index: [number], value: V): void;
     _write(buffer: Buffer, index: [number], value: V): void;
     read(buffer: Buffer, index: [number]): V;
-    size(value: V): number;
+    getSize(value: V): number;
     validate(value: any): string | void;
+    assert(value: any);
     serialize(value: any): Buffer;
     deserialize(buffer: Buffer): any;
     makeSample(): V;
@@ -21,8 +22,9 @@ type ArrayBin<T = any[]> = {
     write(buffer: Buffer, index: [number], value: T): void;
     _write(buffer: Buffer, index: [number], value: T): void;
     read(buffer: Buffer, index: [number]): T;
-    size(value: any): number;
+    getSize(value: any): number;
     validate(value: any): string | void;
+    assert(value: any);
     serialize(value: any): Buffer;
     deserialize(buffer: Buffer): T;
     makeSample(): T;
@@ -42,12 +44,18 @@ type TypedArrayBin<T> = ArrayBin<T> & {
     fixed(length: number, lengthBytes?: number): TypedArrayBin<T>;
 };
 
-type ObjectStruct<Obj> = Obj & {
+type ObjectStructInstance<Obj> = Obj & {
     getSize(): number;
     validate(): string | void;
+    assert();
     get buffer(): Buffer;
     set buffer(v: Buffer);
 };
+
+type ObjectStruct<Obj> = ObjectBin<Obj>
+    // & (() => ObjectStruct<KObj>) // I commented this because when I tabbed after typing myStruc(auto complete),
+    // it added () after the autocomplete thinking it's a function. You can still use it like myStruct(), "new" is not forced.
+    & (new () => ObjectStructInstance<Obj>);
 
 type ObjectBin<Obj = Record<string, any>> = {
     __TYPE__: Obj;
@@ -55,18 +63,15 @@ type ObjectBin<Obj = Record<string, any>> = {
     write(buffer: Buffer, index: [number], value: Obj, condition?: (key: any, item: any) => boolean): void;
     _write(buffer: Buffer, index: [number], value: Obj, condition?: (key: any, item: any) => boolean): void;
     read(buffer: Buffer, index: [number]): Obj;
-    size(value: Obj, condition?: (key: any, item: any) => boolean): number;
-    validate(value: Obj, clazz?: Class, condition?: (key: any, item: any) => boolean): string | void;
+    getSize(value: Obj, condition?: (key: any, item: any) => boolean): number;
+    validate(value: any, clazz?: Class, condition?: (key: any, item: any) => boolean): string | void;
+    assert(value: any, clazz?: Class, condition?: (key: any, item: any) => boolean);
     serialize(value: Obj, condition?: (key: any, item: any) => boolean): Buffer;
     deserialize(buffer: Buffer): Obj;
     makeSample<K>(clazz?: K): (K extends Class ? InstanceType<K> : {}) & Obj;
 
     typed<K>(type: AnyBin<K>, length?: number, lengthBytes?: number): ObjectBin<Record<string, K>>;
-    struct<K extends Record<string, AnyBin<any>>, KObj = { [L in keyof K]: K[L]["__TYPE__"]; }>(struct: K):
-        ObjectBin<KObj>
-        // & (() => ObjectStruct<KObj>) // I commented this because when I tabbed after typing myStruc(auto complete),
-        // it added () after the autocomplete thinking it's a function. You can still use it like myStruct(), "new" is not forced.
-        & (new () => ObjectStruct<KObj>);
+    struct<K extends Record<string, AnyBin<any>>, KObj = { [L in keyof K]: K[L]["__TYPE__"]; }>(struct: K): ObjectStruct<KObj>;
     class<K>(clazz: K, constructor?: (obj: any) => K): ObjectBin<K>;
     /**
      * @description It is highly recommended to use .struct().class() combination instead as it is more consistent.
@@ -81,13 +86,19 @@ type MapBin<Obj = Map<string, any>> = {
     write(buffer: Buffer, index: [number], value: Obj): void;
     _write(buffer: Buffer, index: [number], value: Obj): void;
     read(buffer: Buffer, index: [number]): Obj;
-    size(value: Obj): number;
-    validate(value: Obj): string | void;
+    getSize(value: Obj): number;
+    validate(value: any): string | void;
+    assert(value: any);
     serialize(value: Obj): Buffer;
     deserialize(buffer: Buffer): Obj;
 
     typed<K, V>(keyType: AnyBin<K>, valueType: AnyBin<V>, length?: number, lengthBytes?: number): MapBin<Map<K, V>>;
     makeSample(): MapBin<Obj>;
+};
+
+type AnyTypeBin<T = any> = Bin<T> & {
+    of<K extends AnyBin<any>[]>(bins: K): AnyTypeBin<K[number]["__TYPE__"]>;
+    of<K extends AnyBin<any>[]>(...bins: K[]): AnyTypeBin<K[number]["__TYPE__"]>;
 };
 
 type AnyBin<T> = Bin<T> | NormalArrayBin<T> | SetBin<T> | TypedArrayBin<T> | ObjectBin<T>;
@@ -98,11 +109,11 @@ type FlaggedBuffer<T> = Buffer & {
 
 declare class __ModuleBinJSVar__ {
     bins: AnyBin<any>[];
-    anyList: any[];
+    constantList: any[];
     classes: _classDef[];
 
     setOptions(opts?: {
-        classes?: (_classDef | Class)[], anyList?: any[]
+        classes?: (_classDef | Class)[], constantList?: any[]
     }): void;
 
     valueToBinId(value: any): number;
@@ -113,14 +124,14 @@ declare class __ModuleBinJSVar__ {
 
     deserialize<T>(buffer: FlaggedBuffer<T>): T;
 
-    size(value: any): number;
+    getSize(value: any): number;
 
-    __makeBin<T>(write: Bin<T>["write"], read: Bin<T>["read"], size: Bin<T>["size"], validate: Bin<T>["validate"]): Bin<T>;
+    makeBin<T>(name: string, write: Bin<T>["write"], read: Bin<T>["read"], size: Bin<T>["getSize"], validate: Bin<T>["validate"], sample: Bin<T>["makeSample"]): Bin<T>;
 
-    __registerBin<T>(write: Bin<T>["write"], read: Bin<T>["read"], size: Bin<T>["size"], validate: Bin<T>["validate"]): number;
+    registerBin<T>(name: string, write: Bin<T>["write"], read: Bin<T>["read"], size: Bin<T>["getSize"], validate: Bin<T>["validate"], sample: Bin<T>["makeSample"]): number;
 
     new(opts?: {
-        classes?: (_classDef | Class)[], anyList?: any[]
+        classes?: (_classDef | Class)[], constantList?: any[]
     }): __ModuleBinJSVar__;
 
     breakId: number;
@@ -167,7 +178,7 @@ declare class __ModuleBinJSVar__ {
     mapId: number;
     dateId: number;
     classId: number;
-    anyId: number;
+    constantId: number;
 
     null: Bin<null>;
     undefined: Bin<undefined>;
@@ -211,12 +222,27 @@ declare class __ModuleBinJSVar__ {
     object: ObjectBin;
     map: MapBin;
     date: Bin<Date>;
+    bool: Bin<boolean>;
+    boolean: Bin<boolean>;
     class: Bin;
-    any: Bin;
-}
-
-declare global {
-    const BinJS: __ModuleBinJSVar__;
+    constant: Bin;
+    any: AnyTypeBin;
 }
 
 export = BinJS;
+export type {
+    Bin, ArrayBin, NormalArrayBin, TypedArrayBin, ObjectStructInstance, ObjectStruct, ObjectBin, AnyBin,
+    MapBin, SetBin, FlaggedBuffer
+};
+
+declare module "stramp" {
+    global {
+        const BinJS: __ModuleBinJSVar__;
+    }
+
+    export = BinJS;
+    export type {
+        Bin, ArrayBin, NormalArrayBin, TypedArrayBin, ObjectStructInstance, ObjectStruct, ObjectBin, AnyBin,
+        MapBin, SetBin, FlaggedBuffer
+    };
+}

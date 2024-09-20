@@ -201,6 +201,20 @@ console.log(buf) // <Buffer 61 00 0a 0a 62 00 14 0d 68 65 6c 6c 6f 2c 20 77 6f 7
 console.log(myClassType.deserialize(buf)) // MyClass { a: 10, b: 'hello, world!' }
 ```
 
+## Using any.of()
+
+```js
+const BinJS = require("stramp")
+
+const i8OrString = BinJS.any.of(X.i8, X.string)
+
+const buf1 = i8OrString.serialize(10)
+const buf2 = i8OrString.serialize("hello")
+
+console.log(i8OrString.deserialize(buf1))
+console.log(i8OrString.deserialize(buf2))
+```
+
 ## Storing functions/constants
 
 ```js
@@ -213,9 +227,9 @@ function myFunc() {
 const myObj = {x: 10}
 
 BinJS.setOptions({
-    // if order of the anyList changes, the output will be different
+    // if order of the constantList changes, the output will be different
     // you can add new functions/constants to the end of the list
-    anyList: [myFunc, myObj]
+    constantList: [myFunc, myObj]
 })
 
 const buf = BinJS.serialize([myFunc, myObj])
