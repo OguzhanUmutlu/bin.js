@@ -206,7 +206,7 @@ console.log(myClassType.deserialize(buf)) // MyClass { a: 10, b: 'hello, world!'
 ```js
 const BinJS = require("stramp")
 
-const i8OrString = BinJS.any.of(X.i8, X.string)
+const i8OrString = BinJS.any.of(BinJS.i8, BinJS.string)
 
 const buf1 = i8OrString.serialize(10)
 const buf2 = i8OrString.serialize("hello")
