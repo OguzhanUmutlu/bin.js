@@ -180,7 +180,9 @@
                 () => null,
                 () => null,
                 () => 0,
-                () => null,
+                v => {
+                    if (v !== null) return "Expected the null value";
+                },
                 () => null
             )];
             this.undefined = this.bins[this.undefinedId = this.registerBin(
@@ -188,7 +190,9 @@
                 () => undefined,
                 () => undefined,
                 () => 0,
-                () => null,
+                v => {
+                    if (v !== undefined) return "Expected the undefined value";
+                },
                 () => undefined
             )];
             this.true = this.bins[this.trueId = this.registerBin(
@@ -196,7 +200,9 @@
                 () => true,
                 () => true,
                 () => 0,
-                () => null,
+                v => {
+                    if (v !== true) return "Expected the true boolean value";
+                },
                 () => true
             )];
             this.false = this.bins[this.falseId = this.registerBin(
@@ -204,7 +210,9 @@
                 () => false,
                 () => false,
                 () => 0,
-                () => null,
+                v => {
+                    if (v !== false) return "Expected the false boolean value";
+                },
                 () => false
             )];
             this.nan = this.bins[this.nanId = this.registerBin(
@@ -212,7 +220,9 @@
                 () => NaN,
                 () => NaN,
                 () => 0,
-                () => null,
+                v => {
+                    if (!isNaN(v)) return "Expected the NaN value";
+                },
                 () => NaN
             )];
             this.posInfinity = this.bins[this.posInfinityId = this.registerBin(
@@ -220,7 +230,9 @@
                 () => Infinity,
                 () => Infinity,
                 () => 0,
-                () => null,
+                v => {
+                    if (v !== Infinity) return "Expected the +Infinity value";
+                },
                 () => Infinity
             )];
             this.negInfinity = this.bins[this.negInfinityId = this.registerBin(
@@ -228,7 +240,9 @@
                 () => -Infinity,
                 () => -Infinity,
                 () => 0,
-                () => null,
+                v => {
+                    if (v !== -Infinity) return "Expected the -Infinity value";
+                },
                 () => -Infinity
             )];
             this.zero = this.bins[this.zeroId = this.registerBin(
@@ -236,7 +250,9 @@
                 () => 0,
                 () => 0,
                 () => 0,
-                () => null,
+                v => {
+                    if (v !== 0) return "Expected the 0 value";
+                },
                 () => 0
             )];
             this.zeroN = this.bins[this.zeroNId = this.registerBin(
@@ -244,7 +260,9 @@
                 () => 0n,
                 () => 0n,
                 () => 0,
-                () => null,
+                v => {
+                    if (v !== 0n) return "Expected the 0n value";
+                },
                 () => 0n
             )];
 
@@ -414,10 +432,24 @@
             this.bigintNeg = this.bins[this.bigintNegId = this.registerBin(
                 "-bigint",
                 (buffer, index, value) => this.bigintPos.write(buffer, index, -value),
-                (buffer, index) => -this.bigintPos.read(buffer, index, 0),
+                (buffer, index) => -this.bigintPos.read(buffer, index),
                 value => this.bigintPos.getSize(-value),
                 v => baseAssert(v, typeof v === "bigint" && v < 0n),
                 () => -1n
+            )];
+            this.bigint = this.bins[this.bigintId = this.registerBin(
+                "bigint",
+                (buffer, index, value) => {
+                    buffer[index[0]++] = value < 0n ? 1 : 0;
+                    this.bigintPos.write(buffer, index, value < 0n ? -value : value);
+                },
+                (buffer, index) => {
+                    const sign = buffer[index[0]++] === 1 ? -1n : 1n;
+                    return sign * this.bigintPos.read(buffer, index);
+                },
+                value => this.bigintPos.getSize(value < 0n ? -value : value) + 1,
+                v => baseAssert(v, typeof v === "bigint"),
+                () => 0n
             )];
 
             this.string8 = this.bins[this.string8id = this.registerBin(
@@ -649,23 +681,25 @@
             this.f32arrayId = 0;
             this.f64arrayId = 0;
             this.arrayBufferId = 0;
+            this.bufferId = 0;
 
-            for (const [name1, name2, clazz, type] of [
-                ["set", "setId", Set],
-                ["u8clampedArray", "u8clampedArrayId", Uint8ClampedArray, this.u8],
-                ["u8array", "u8arrayId", Uint8Array, this.u8],
-                ["u16array", "u16arrayId", Uint16Array, this.u16],
-                ["u32array", "u32arrayId", Uint32Array, this.u32],
-                ["u64array", "u64arrayId", BigUint64Array, this.u64],
-                ["i8array", "i8arrayId", Int8Array, this.i8],
-                ["i16array", "i16arrayId", Int16Array, this.i16],
-                ["i32array", "i32arrayId", Int32Array, this.i32],
-                ["i64array", "i64arrayId", BigInt64Array, this.i64],
-                ["f32array", "f32arrayId", Float32Array, this.f32],
-                ["f64array", "f64arrayId", Float64Array, this.f64],
-                ["arrayBuffer", "arrayBufferId", ArrayBuffer, this.u8]
+            for (const [name, clazz, type] of [
+                ["set", Set],
+                ["u8clampedArray", Uint8ClampedArray, this.u8],
+                ["u8array", Uint8Array, this.u8],
+                ["u16array", Uint16Array, this.u16],
+                ["u32array", Uint32Array, this.u32],
+                ["u64array", BigUint64Array, this.u64],
+                ["i8array", Int8Array, this.i8],
+                ["i16array", Int16Array, this.i16],
+                ["i32array", Int32Array, this.i32],
+                ["i64array", BigInt64Array, this.i64],
+                ["f32array", Float32Array, this.f32],
+                ["f64array", Float64Array, this.f64],
+                ["arrayBuffer", ArrayBuffer, this.u8],
+                ["buffer", Buffer, this.u8]
             ]) {
-                addArrayProps(this[name1] = this.bins[this[name2] = this.registerBin(
+                addArrayProps(this[name] = this.bins[this[name + "Id"] = this.registerBin(
                     clazz.name,
                     (buffer, index, value) => {
                         this.array._write(buffer, index, [...value]);
@@ -678,8 +712,8 @@
                     () => new clazz(this.array.makeSample())
                 )], clazz, v => new clazz(v));
                 if (type) {
-                    const original = this[name1];
-                    const bin = this[name1] = original.typed(type);
+                    const original = this[name];
+                    const bin = this[name] = original.typed(type);
                     bin.fixed = (length, lengthBytes = 2) => original.typed(type, length, lengthBytes);
                 }
             }
@@ -1048,6 +1082,10 @@
             )];
             this.any.of = (...bins) => {
                 if (Array.isArray(bins[0])) bins = bins[0];
+                bins = bins.map(i => {
+                    if (typeof i === "object" && i !== null && nameSymbol in i) return i;
+                    return this.makeLiteral(i);
+                });
                 if (bins.length > 255) throw new Error("Cannot have more than 255 bins in any.of()");
                 const anyOfBin = this.makeBin(
                     `(${bins.map(i => i[nameSymbol]).join(" | ")})`,
@@ -1068,9 +1106,24 @@
                     value => {
                         if (bins.every(bin => bin.validate(value))) return `Value (${inspect(value)}) doesn't match any of the types ${anyOfBin[nameSymbol]}`;
                     },
-                    () => null
+                    () => {
+                        throw new Error("Cannot make a sample for any.of(), this was most likely caused by instantiating a new struct that includes an any.of() bin.");
+                    }
                 )
                 return anyOfBin;
+            };
+
+            this.makeLiteral = any => {
+                return this.makeBin(
+                    `literal(${inspect(any)})`,
+                    () => 0,
+                    () => any,
+                    () => 0,
+                    v => {
+                        if (v !== any) return `Expected ${inspect(any)} but got ${inspect(v)}`
+                    },
+                    () => any
+                )
             };
         };
     }

@@ -134,6 +134,8 @@ declare class __ModuleBinJSVar__ {
         classes?: (_classDef | Class)[], constantList?: any[]
     }): __ModuleBinJSVar__;
 
+    makeLiteral<K extends number | string | boolean | object>(any: K): Bin<K>;
+
     breakId: number;
     nullId: number;
     undefinedId: number;
@@ -156,6 +158,7 @@ declare class __ModuleBinJSVar__ {
     f64id: number;
     bigintPosId: number;
     bigintNegId: number;
+    bigintId: number;
     string8id: number;
     string16id: number;
     string32id: number;
@@ -174,11 +177,13 @@ declare class __ModuleBinJSVar__ {
     f32arrayId: number;
     f64arrayId: number;
     arrayBufferId: number;
+    bufferId: number;
     objectId: number;
     mapId: number;
     dateId: number;
     classId: number;
     constantId: number;
+    anyId: number;
 
     null: Bin<null>;
     undefined: Bin<undefined>;
@@ -201,6 +206,7 @@ declare class __ModuleBinJSVar__ {
     f64: Bin<number>;
     bigintPos: Bin<bigint>;
     bigintNeg: Bin<bigint>;
+    bigint: Bin<bigint>;
     string8: Bin<string>;
     string16: Bin<string>;
     string32: Bin<string>;
@@ -219,6 +225,7 @@ declare class __ModuleBinJSVar__ {
     f32array: TypedArrayBin<Float32Array>;
     f64array: TypedArrayBin<Float64Array>;
     arrayBuffer: TypedArrayBin<ArrayBuffer>;
+    buffer: TypedArrayBin<Buffer>;
     object: ObjectBin;
     map: MapBin;
     date: Bin<Date>;
