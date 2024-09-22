@@ -1,14 +1,21 @@
 const BinJS = require("../index");
+const fs = require("fs/promises");
 
-const i8OrString = BinJS.any.of(BinJS.i8, BinJS.string)
+const asyncBin = BinJS.makeBin({
+    name: "myAsyncBin",
+    async write(buffer, index) {
+        buffer[index[0]++] = (await fs.readFile("./test.js"))[0];
+    },
+    read(buffer, index) {
+        return buffer[index[0]++];
+    },
+    size: () => 1,
+    validate: () => null,
+    sample: () => 0
+});
 
-console.log(i8OrString.serialize(10)) // <Buffer 00 8a>
-console.log(i8OrString.serialize("hello")) // <Buffer 01 68 65 6c 6c 6f 00>
-
-
-const myAnyOf = BinJS.any.of("hello", 10, true, BinJS.bigint)
-
-console.log(myAnyOf.serialize("hello")) // <Buffer 00>
-console.log(myAnyOf.serialize(10)) // <Buffer 01>
-console.log(myAnyOf.serialize(true)) // <Buffer 02>
-console.log(myAnyOf.serialize(10n)) // <Buffer 03 00 01 00 0a>
+(async () => {
+    const buf = await asyncBin.serialize();
+    console.log(buf);
+    console.log(asyncBin.deserialize(buf));
+})();

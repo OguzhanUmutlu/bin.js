@@ -8,8 +8,8 @@ type Bin<V = any> = {
     getSize(value: V): number;
     validate(value: any): string | void;
     assert(value: any);
-    serialize(value: any): Buffer;
-    deserialize(buffer: Buffer): any;
+    serialize(value: any): Promise<Buffer> | Buffer;
+    deserialize(buffer: Buffer): Promise<V> | V;
     makeSample(): V;
 };
 
@@ -126,9 +126,23 @@ declare class __ModuleBinJSVar__ {
 
     getSize(value: any): number;
 
-    makeBin<T>(name: string, write: Bin<T>["write"], read: Bin<T>["read"], size: Bin<T>["getSize"], validate: Bin<T>["validate"], sample: Bin<T>["makeSample"]): Bin<T>;
+    makeBin<T>(meta: {
+        name: string,
+        write: Bin<T>["write"],
+        read: Bin<T>["read"],
+        size: Bin<T>["getSize"],
+        validate: Bin<T>["validate"],
+        sample: Bin<T>["makeSample"]
+    }): Bin<T>;
 
-    registerBin<T>(name: string, write: Bin<T>["write"], read: Bin<T>["read"], size: Bin<T>["getSize"], validate: Bin<T>["validate"], sample: Bin<T>["makeSample"]): number;
+    registerBin<T>(meta: {
+        name: string,
+        write: Bin<T>["write"],
+        read: Bin<T>["read"],
+        size: Bin<T>["getSize"],
+        validate: Bin<T>["validate"],
+        sample: Bin<T>["makeSample"]
+    }): number;
 
     new(opts?: {
         classes?: (_classDef | Class)[], constantList?: any[]

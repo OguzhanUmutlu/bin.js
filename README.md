@@ -220,7 +220,36 @@ console.log(myAnyOf.serialize(true)) // <Buffer 02>
 console.log(myAnyOf.serialize(10n)) // <Buffer 03 00 01 00 0a>
 ```
 
-## Storing functions/constants
+## Making asynchronous binaries
+
+```js
+const BinJS = require("stramp")
+const fs = require("fs/promises")
+
+const asyncBin = BinJS.makeBin({
+    name: "myAsyncBin",
+    async write(buffer, index, filename) {
+        // Reads the first character of the file
+        // and stores it in the buffer
+        buffer[index[0]++] = (await fs.readFile(filename))[0]
+    },
+    read(buffer, index) {
+        // Reads the written character
+        return buffer[index[0]++]
+    },
+    size: () => 1, // 1 byte
+    validate: () => null, // no validation
+    sample: () => 0 // 0 as a sample
+})
+
+(async () => {
+    const buf = await asyncBin.serialize("./myFile.txt")
+    console.log(buf) // <Buffer 63>
+    console.log(asyncBin.deserialize(buf)) // 99
+})()
+```
+
+## Storing functions/constants/runtime values
 
 ```js
 const BinJS = require("stramp")
