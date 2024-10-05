@@ -166,7 +166,7 @@
             };
 
             makeBin({name, write, read, size, validate, sample}) {
-                return {
+                const bin = {
                     [nameSymbol]: name, write(buffer, index, value, ...args) {
                         this.assert(value, ...args);
                         const promise = write(buffer, index, value, ...args);
@@ -184,8 +184,12 @@
                     },
                     deserialize(buffer, ...args) {
                         return this.read(buffer, [0], ...args);
-                    }, makeSample: sample
+                    }, makeSample: sample,
+                    array: (fixedLength, lengthBytes = 2) => {
+                        return this.array.typed(bin, fixedLength, lengthBytes);
+                    }
                 }
+                return bin;
             };
 
             registerBin({name, write, read, size, validate, sample}) {
@@ -624,7 +628,7 @@
                         const readFn = readFnMatch[lengthBytes];
                         const writeFn = writeFnMatch[lengthBytes];
                         const bin = this.makeBin({
-                            name: `${array[nameSymbol]}<${type[nameSymbol]}>`,
+                            name: `${array[nameSymbol]}<${type[nameSymbol]}${fixedLength ? `, len=${fixedLength}` : ""}>`,
                             write: (buffer, index, value) => {
                                 // I used length because if I don"t, this causes a bug: [1, 2, 3], resulting in a buffer that starts with the array break byte.
                                 let length = value.length;
@@ -666,8 +670,11 @@
                             },
                             sample: () => []
                         });
+                        bin.fixed = (fixedLength, lb = lengthBytes) => {
+                            return array.typed(type, fixedLength, lb);
+                        };
                         bin.typed = () => {
-                            warnOnce("array.typed().typed() is a no-op. To remove this warning please do just use array.typed()");
+                            warnOnce("array.typed().typed() is a no-op. To remove this warning please just use array.typed()");
                             return array.typed(length);
                         };
                         bin.struct = () => {
@@ -845,7 +852,7 @@
                             return base.struct(...args).class(clazz, constructor);
                         };
                         bin.typed = () => {
-                            throw new Error("The use of .class().typed() is invalid. Try doing .typed().class() instead.");
+                            throw new Error("The use of .class().typed() is invalid. Try using .typed().class() instead.");
                         };
                         return bin;
                     };
@@ -856,7 +863,7 @@
                     const readFn = readFnMatch[lengthBytes];
                     const writeFn = writeFnMatch[lengthBytes];
                     return addClassProp(this.makeBin({
-                        name: `object<string, ${type[nameSymbol]}>`,
+                        name: `object<string, ${type[nameSymbol]}${fixedLength ? ", len=" + fixedLength : ""}>`,
                         write: (buffer, index, value, condition = () => true) => {
                             const entries = Object.entries(value).filter(i => condition(i[1]));
 
@@ -957,7 +964,7 @@
                         }
                     }));
                     const structKeys = struct.map(i => i[0]);
-                    const classKeys = ["getSize", "validate", "buffer", structSymbol];
+                    const classKeys = ["getSize", "validate", "buffer", "assert", structSymbol];
                     const canInstantiate = classKeys.every(i => !structKeys.includes(i));
                     const Struct = function () {
                         if (!canInstantiate) throw new Error("Cannot instantiate this struct because it includes the following properties: " + classKeys.filter(i => structKeys.includes(i)).join(", "));
@@ -977,7 +984,7 @@
                         for (const [key, type] of struct) {
                             this[key] = type.makeSample();
                         }
-                        this[structSymbol] = true;
+                        this[structSymbol] = Struct;
                         return this;
                     };
                     Object.assign(Struct, binData);

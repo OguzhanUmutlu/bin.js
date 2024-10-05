@@ -1,4 +1,4 @@
-const {default: {set, object, i8, f64, string, bigint, _id}} = require("../index");
+const {default: {object, i8, f64, string, array, u8array}} = require("../index");
 
 const MyStruct = object.struct({
     x: i8,
@@ -21,7 +21,9 @@ const data = {
 };
 
 const buf = MyStruct.serialize(data);
+console.log(buf); // <Buffer>
+console.log(MyStruct.deserialize(buf));  // data
 
-console.log(buf);
+const type = u8array.fixed(20).array(10);
 
-console.log(MyStruct.deserialize(buf));
+console.log(type.serialize(Array(10).fill(new Uint8Array(Array(20)))));

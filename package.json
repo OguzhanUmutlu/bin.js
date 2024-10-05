@@ -1,6 +1,6 @@
 {
   "name": "stramp",
-  "version": "1.4.2",
+  "version": "1.4.4",
   "description": "A JavaScript library that can convert any kind of data into binary that can be restored",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
@@ -27,7 +27,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/OguzhanUmutlu/bin.js"
+    "url": "git+https://github.com/OguzhanUmutlu/bin.js.git"
   },
   "dependencies": {
     "buffer": "^6.0.3",

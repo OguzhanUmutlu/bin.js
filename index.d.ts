@@ -11,6 +11,7 @@ type Bin<V = any, readT = V, writeT = void> = {
     serialize(value: any): writeT extends Promise ? Promise<Buffer> : Buffer;
     deserialize(buffer: Buffer): readT;
     makeSample(): V;
+    array(length?: number, lengthBytes?: number): NormalArrayBin<V[]>;
 };
 
 type Class<T = any, K extends T = any> = new (...args: any[]) => K;
@@ -28,10 +29,12 @@ type ArrayBin<T = any[]> = {
     serialize(value: any): Buffer;
     deserialize(buffer: Buffer): T;
     makeSample(): T;
+    array(length?: number, lengthBytes?: number): NormalArrayBin<T[]>;
 };
 
 type NormalArrayBin<T = any[]> = ArrayBin<T> & {
     typed<K>(type: AnyBin<K>, length?: number, lengthBytes?: number): NormalArrayBin<K[]>;
+    fixed(length: number, lengthBytes?: number): NormalArrayBin<T>;
     struct<K extends Bin[]>(types: K): NormalArrayBin<K[number]["__TYPE__"]>;
 };
 
@@ -78,6 +81,8 @@ type ObjectBin<Obj = Record<string, any>> = {
      *   For example if your class sample has a property with the value 2, it will use u8, but it might be an u32.
      */
     structClass<K>(sample: K, constructor?: (obj: any) => K): ObjectBin<K>;
+
+    array(length?: number, lengthBytes?: number): NormalArrayBin<Obj[]>;
 };
 
 type MapBin<Obj = Map<string, any>> = {
@@ -94,6 +99,8 @@ type MapBin<Obj = Map<string, any>> = {
 
     typed<K, V>(keyType: AnyBin<K>, valueType: AnyBin<V>, length?: number, lengthBytes?: number): MapBin<Map<K, V>>;
     makeSample(): MapBin<Obj>;
+
+    array(length?: number, lengthBytes?: number): NormalArrayBin<Obj[]>;
 };
 
 type AnyTypeBin<T = any, RV = T, WV = void> = Bin<T, RV, WV> & {
