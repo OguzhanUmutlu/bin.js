@@ -1,15 +1,15 @@
-type Bin<V = any> = {
+type Bin<V = any, readT = V, writeT = void> = {
     /*** @private */
     __TYPE__: V;
     name: string;
-    write(buffer: Buffer, index: [number], value: V): void;
-    _write(buffer: Buffer, index: [number], value: V): void;
-    read(buffer: Buffer, index: [number]): V;
+    write(buffer: Buffer, index: [number], value: V): writeT;
+    _write(buffer: Buffer, index: [number], value: V): writeT;
+    read(buffer: Buffer, index: [number]): readT;
     getSize(value: V): number;
     validate(value: any): string | void;
     assert(value: any);
-    serialize(value: any): Promise<Buffer> | Buffer;
-    deserialize(buffer: Buffer): Promise<V> | V;
+    serialize(value: any): writeT extends Promise ? Promise<Buffer> : Buffer;
+    deserialize(buffer: Buffer): readT;
     makeSample(): V;
 };
 
@@ -96,12 +96,12 @@ type MapBin<Obj = Map<string, any>> = {
     makeSample(): MapBin<Obj>;
 };
 
-type AnyTypeBin<T = any> = Bin<T> & {
+type AnyTypeBin<T = any, RV = T, WV = void> = Bin<T, RV, WV> & {
     of<K extends AnyBin<any>[]>(bins: K): AnyTypeBin<K[number]["__TYPE__"]>;
     of<K extends AnyBin<any>[]>(...bins: K[]): AnyTypeBin<K[number]["__TYPE__"]>;
 };
 
-type AnyBin<T> = Bin<T> | NormalArrayBin<T> | SetBin<T> | TypedArrayBin<T> | ObjectBin<T>;
+type AnyBin<T, RV = any, WV = any> = Bin<T, RV, WV> | NormalArrayBin<T> | SetBin<T> | TypedArrayBin<T> | ObjectBin<T>;
 
 type FlaggedBuffer<T> = Buffer & {
     __type__: T;
@@ -126,19 +126,27 @@ declare class __ModuleBinJSVar__ {
 
     getSize(value: any): number;
 
-    makeBin<T>(meta: {
+    makeBin<
+        T,
+        readT,
+        writeT
+    >(meta: {
         name: string,
-        write: Bin<T>["write"],
-        read: Bin<T>["read"],
+        write: Bin<T, readT, writeT>["write"],
+        read: Bin<T, readT>["read"],
         size: Bin<T>["getSize"],
         validate: Bin<T>["validate"],
         sample: Bin<T>["makeSample"]
-    }): Bin<T>;
+    }): Bin<T, readT, writeT>;
 
-    registerBin<T>(meta: {
+    registerBin<
+        T,
+        readT extends T | Promise<T>,
+        writeT extends T | Promise<T>
+    >(meta: {
         name: string,
-        write: Bin<T>["write"],
-        read: Bin<T>["read"],
+        write: Bin<writeT>["write"],
+        read: Bin<readT>["read"],
         size: Bin<T>["getSize"],
         validate: Bin<T>["validate"],
         sample: Bin<T>["makeSample"]
@@ -250,20 +258,13 @@ declare class __ModuleBinJSVar__ {
     any: AnyTypeBin;
 }
 
-export = BinJS;
+global {
+    const BinJS: __ModuleBinJSVar__;
+}
+
+export default BinJS;
+
 export type {
     Bin, ArrayBin, NormalArrayBin, TypedArrayBin, ObjectStructInstance, ObjectStruct, ObjectBin, AnyBin,
     MapBin, SetBin, FlaggedBuffer
 };
-
-declare module "stramp" {
-    global {
-        const BinJS: __ModuleBinJSVar__;
-    }
-
-    export = BinJS;
-    export type {
-        Bin, ArrayBin, NormalArrayBin, TypedArrayBin, ObjectStructInstance, ObjectStruct, ObjectBin, AnyBin,
-        MapBin, SetBin, FlaggedBuffer
-    };
-}

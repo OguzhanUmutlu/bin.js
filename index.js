@@ -1,19 +1,38 @@
 (function () {
-        const get = t => eval(`typeof ${t} !== "undefined" ? ${t} : null`);
-        const global_ = get("self") || get("global") || this;
-        const module_ = get("module");
-        const require_ = get("require");
+        const global_ = typeof self === "undefined" ? (typeof window === "undefined" ? global : window) : self;
 
         const Buffer = global_.Buffer || require("buffer").Buffer;
-        if (!("Buffer" in global_)) global_.Buffer = Buffer;
 
-        const inspect = global_.util || (require_ ? r => require_("util").inspect(r) : r => JSON.stringify(r));
+        const p = global_.process;
+        global_.process ??= {env: {}};
+        const util = global_.util || require("util");
+        global_.process = p;
 
         const nameSymbol = Symbol("BinName");
         const structSymbol = Symbol("BinStruct");
 
-        function baseAssert(val, bool) {
-            if (!bool) return `Invalid value(${inspect(val)})`;
+        function numAssert(val, min, max) {
+            if (typeof val !== "number" || isNaN(val) || !isFinite(val)) {
+                return `Invalid value(${util.inspect(val)}), expected a number`;
+            }
+            if (val < min || val > max) {
+                return `Invalid value(${util.inspect(val)}), expected a value between ${min} and ${max}`;
+            }
+        }
+
+        function bigintAssert(val, min, max) {
+            if (typeof val !== "bigint") {
+                return `Invalid value(${util.inspect(val)}), expected a bigint`;
+            }
+            if (val < min || val > max) {
+                return `Invalid value(${util.inspect(val)}), expected a value between ${min} and ${max}`;
+            }
+        }
+
+        function stringAssert(val, maxLength) {
+            if (typeof val !== "string") return `Invalid value(${util.inspect(val)}), expected a string`;
+            const length = Buffer.byteLength(val, "utf8");
+            if (length > maxLength) return `String is too long(${length}), max length is ${maxLength}`;
         }
 
         const warns = {};
@@ -35,6 +54,7 @@
                 this.bins = [];
                 this.constantList = [];
                 this.classes = [];
+                this.classToBinMap = new Map;
                 this.__registerBuiltInBins();
                 this.setOptions({classes, constantList});
             };
@@ -133,8 +153,7 @@
                 const id = this.valueToBinId(value);
                 const buffer = Buffer.allocUnsafe(this.bins[id].getSize(value) + 1);
                 buffer[0] = id;
-                const promise = this.bins[id].write(buffer, [1], value);
-                if (promise instanceof Promise) return promise.then(() => buffer);
+                this.bins[id].write(buffer, [1], value);
                 return buffer;
             };
 
@@ -174,6 +193,18 @@
                 if (id > 255) throw new Error("Too many bins");
                 this.bins[id] = this.makeBin({name, write, read, size, validate, sample});
                 return id;
+            };
+
+            getBinIfNotBin(bin) {
+                if (bin === null) return this.null;
+                if (typeof bin === "object") {
+                    if (bin[nameSymbol]) return bin;
+                    const clazz = bin.constructor;
+                    const b = this.classToBinMap.get(clazz);
+                    if (b) return b.struct(bin);
+                    if (this.classes.includes(clazz)) return this.object.structClass(bin);
+                }
+                return this.valueToBinId(bin);
             };
 
             __registerBuiltInBins() {
@@ -274,7 +305,7 @@
                     write: (buffer, index, value) => buffer[index[0]++] = value,
                     read: (buffer, index) => buffer[index[0]++],
                     size: () => 1,
-                    validate: v => baseAssert(v, typeof v === "number" && !isNaN(v) && v >= 0 && v <= 255),
+                    validate: v => numAssert(v, 0, 255),
                     sample: () => 0
                 })];
                 this.u16 = this.bins[this.u16id = this.registerBin({
@@ -289,7 +320,7 @@
                         return value;
                     },
                     size: () => 2,
-                    validate: v => baseAssert(v, typeof v === "number" && !isNaN(v) && v >= 0 && v <= 65535),
+                    validate: v => numAssert(v, 0, 65535),
                     sample: () => 0
                 })];
                 this.u32 = this.bins[this.u32id = this.registerBin({
@@ -304,7 +335,7 @@
                         return value;
                     },
                     size: () => 4,
-                    validate: v => baseAssert(v, typeof v === "number" && !isNaN(v) && v >= 0 && v <= 4294967295),
+                    validate: v => numAssert(v, 0, 4294967295),
                     sample: () => 0
                 })];
                 this.u64 = this.bins[this.u64id = this.registerBin({
@@ -319,7 +350,7 @@
                         return value;
                     },
                     size: () => 8,
-                    validate: v => baseAssert(v, typeof v === "bigint" && v >= 0n && v <= 18446744073709551615n),
+                    validate: v => bigintAssert(v, 0n, 18446744073709551615n),
                     sample: () => 0
                 })];
                 this.i8 = this.bins[this.i8id = this.registerBin({
@@ -327,7 +358,7 @@
                     write: (buffer, index, value) => buffer[index[0]++] = value + 128,
                     read: (buffer, index) => buffer[index[0]++] - 128,
                     size: () => 1,
-                    validate: v => baseAssert(v, typeof v === "number" && !isNaN(v) && v >= -128 && v <= 127),
+                    validate: v => numAssert(v, -128, 127),
                     sample: () => 0
                 })];
                 this.i16 = this.bins[this.i16id = this.registerBin({
@@ -342,7 +373,7 @@
                         return value;
                     },
                     size: () => 2,
-                    validate: v => baseAssert(v, typeof v === "number" && !isNaN(v) && v >= -32768 && v <= 32767),
+                    validate: v => numAssert(v, -32768, 32767),
                     sample: () => 0
                 })];
                 this.i32 = this.bins[this.i32id = this.registerBin({
@@ -357,7 +388,7 @@
                         return value;
                     },
                     size: () => 4,
-                    validate: v => baseAssert(v, typeof v === "number" && !isNaN(v) && v >= -2147483648 && v <= 2147483647),
+                    validate: v => numAssert(v, -2147483648, 2147483647),
                     sample: () => 0
                 })];
                 this.i64 = this.bins[this.i64id = this.registerBin({
@@ -372,7 +403,7 @@
                         return value;
                     },
                     size: () => 8,
-                    validate: v => baseAssert(v, typeof v === "bigint" && v >= -9223372036854775808n && v <= 9223372036854775807n),
+                    validate: v => numAssert(v, -9223372036854775808n, 9223372036854775807n),
                     sample: () => 0
                 })];
                 this.f32 = this.bins[this.f32id = this.registerBin({
@@ -387,7 +418,7 @@
                         return value;
                     },
                     size: () => 4,
-                    validate: v => baseAssert(v, typeof v === "number" && !isNaN(v) && v >= -3.4028234663852886e+38 && v <= 3.4028234663852886e+38),
+                    validate: v => numAssert(v, -3.4028234663852886e+38, 3.4028234663852886e+38),
                     sample: () => 0
                 })];
                 this.f64 = this.bins[this.f64id = this.registerBin({
@@ -402,7 +433,7 @@
                         return value;
                     },
                     size: () => 8,
-                    validate: v => baseAssert(v, typeof v === "number" && !isNaN(v) && v >= -1.7976931348623157e+308 && v <= 1.7976931348623157e+308),
+                    validate: v => numAssert(v, -1.7976931348623157e+308, 1.7976931348623157e+308),
                     sample: () => 0
                 })];
                 this.bigintPos = this.bins[this.bigintPosId = this.registerBin({
@@ -429,7 +460,7 @@
                         if (hex.length % 2 === 1) hex = "0" + hex;
                         return hex.length / 2 + 2;
                     },
-                    validate: v => baseAssert(v, typeof v === "bigint" && v > 0n),
+                    validate: v => bigintAssert(v, 0n, Infinity),
                     sample: () => 1n
                 })];
                 this.bigintNeg = this.bins[this.bigintNegId = this.registerBin({
@@ -437,7 +468,7 @@
                     write: (buffer, index, value) => this.bigintPos.write(buffer, index, -value),
                     read: (buffer, index) => -this.bigintPos.read(buffer, index),
                     size: value => this.bigintPos.getSize(-value),
-                    validate: v => baseAssert(v, typeof v === "bigint" && v < 0n),
+                    validate: v => bigintAssert(v, -Infinity, 0n),
                     sample: () => -1n
                 })];
                 this.bigint = this.bins[this.bigintId = this.registerBin({
@@ -451,7 +482,9 @@
                         return sign * this.bigintPos.read(buffer, index);
                     },
                     size: value => this.bigintPos.getSize(value < 0n ? -value : value) + 1,
-                    validate: v => baseAssert(v, typeof v === "bigint"),
+                    validate: v => {
+                        if (typeof v !== "bigint") return `Invalid value(${util.inspect(v)}), expected a bigint`;
+                    },
                     sample: () => 0n
                 })];
 
@@ -470,7 +503,7 @@
                         return value;
                     },
                     size: value => Buffer.byteLength(value, "utf8") + 1,
-                    validate: v => baseAssert(v, typeof v === "string" && Buffer.byteLength(v, "utf8") <= 255),
+                    validate: v => stringAssert(v, 255),
                     sample: () => ""
                 })];
                 this.string16 = this.bins[this.string16id = this.registerBin({
@@ -490,7 +523,7 @@
                         return value;
                     },
                     size: value => Buffer.byteLength(value, "utf8") + 2,
-                    validate: v => baseAssert(v, typeof v === "string" && Buffer.byteLength(v, "utf8") <= 65535),
+                    validate: v => stringAssert(v, 65535),
                     sample: () => ""
                 })];
                 this.string32 = this.bins[this.string32id = this.registerBin({
@@ -510,7 +543,7 @@
                         return value;
                     },
                     size: value => Buffer.byteLength(value, "utf8") + 4,
-                    validate: v => baseAssert(v, typeof v === "string" && Buffer.byteLength(v, "utf8") <= 4294967295),
+                    validate: v => stringAssert(v, 4294967295),
                     sample: () => ""
                 })];
                 this.string = this.bins[this.stringId = this.registerBin({
@@ -544,7 +577,9 @@
                         }
                         return size;
                     },
-                    validate: v => baseAssert(v, typeof v === "string"),
+                    validate: v => {
+                        if (typeof v !== "string") return `Invalid value(${util.inspect(v)}), expected a string`;
+                    },
                     sample: () => ""
                 })]
 
@@ -582,6 +617,7 @@
                     },
                     sample: () => []
                 })];
+                this.classToBinMap.set(Array, this.array);
 
                 const addArrayProps = (array, clazz = Array, convert = r => r) => {
                     array.typed = (type, fixedLength = null, lengthBytes = 2) => {
@@ -640,6 +676,8 @@
                         return bin;
                     };
                     array.struct = types => {
+                        if (!(Symbol.iterator in types)) throw new Error("Expected an iterable for the types parameter");
+                        types = [...types].map(i => this.getBinIfNotBin(i));
                         const bin = this.makeBin({
                             name: `[${types.map(t => t[nameSymbol]).join(", ")}]`,
                             write: (buffer, index, value) => {
@@ -715,7 +753,7 @@
                     ["arrayBuffer", ArrayBuffer, this.u8],
                     ["buffer", Buffer, this.u8]
                 ]) {
-                    addArrayProps(this[name] = this.bins[this[name + "Id"] = this.registerBin({
+                    let bin = addArrayProps(this[name] = this.bins[this[name + "Id"] = this.registerBin({
                         name: clazz.name,
                         write: (buffer, index, value) => {
                             this.array._write(buffer, index, [...value]);
@@ -726,14 +764,19 @@
                             return new clazz(v);
                         },
                         size: value => this.array.getSize([...value]),
-                        validate: value => this.array.validate([...value]),
+                        validate: value => {
+                            const t = this.array.validate([...value]);
+                            if (t) return t;
+                            if (!(value instanceof clazz)) return `Expected an instance of ${clazz.name}`
+                        },
                         sample: () => new clazz(this.array.makeSample())
                     })], clazz, v => new clazz(v));
                     if (type) {
-                        const original = this[name];
-                        const bin = this[name] = original.typed(type);
+                        const original = bin;
+                        bin = this[name] = original.typed(type);
                         bin.fixed = (length, lengthBytes = 2) => original.typed(type, length, lengthBytes);
                     }
+                    this.classToBinMap.set(clazz, bin);
                 }
 
                 this.object = this.bins[this.objectId = this.registerBin({
@@ -774,6 +817,7 @@
                     },
                     sample: (constructor = r => r) => constructor({})
                 })];
+                this.classToBinMap.set(Object, this.object);
                 const classCheck = item => typeof item !== "function" || this.constantList.includes(item);
                 const addClassProp = base => {
                     base.class = (clazz, constructor) => {
@@ -868,11 +912,7 @@
                     if (typeof obj !== "object") throw new Error("Expected an object for the struct definition");
                     if (obj.constructor !== Object) throw new Error("Expected an object for the struct definition");
                     const struct = Object.entries(obj)
-                        .sort((a, b) => a[0].localeCompare(b[0]))
-                        .map(([key, type]) => {
-                            if (typeof type === "object" && !type[nameSymbol]) return [key, this.object.struct(type)];
-                            return [key, type];
-                        });
+                        .map(([key, type]) => [key, this.getBinIfNotBin(type)]);
                     for (const [key, type] of struct) {
                         if ((typeof type !== "function" && typeof type !== "object") || type === null || !type[nameSymbol]) {
                             throw new Error("Invalid struct type at the key: " + key);
@@ -1027,10 +1067,10 @@
 
                             for (const [key, item] of v) {
                                 let err = keyType.validate(key);
-                                if (err) return `[${inspect(key)}][key]${err[0] === "[" ? "" : ": "}${err}`;
+                                if (err) return `[${util.inspect(key)}][key]${err[0] === "[" ? "" : ": "}${err}`;
 
                                 err = valueType.validate(item);
-                                if (err) return `[${inspect(key)}][value]${err[0] === "[" ? "" : ": "}${err}`;
+                                if (err) return `[${util.inspect(key)}][value]${err[0] === "[" ? "" : ": "}${err}`;
                             }
                         },
                         sample: () => new Map
@@ -1093,7 +1133,7 @@
                     },
                     size: () => 2,
                     validate: v => {
-                        if (!this.constantList.includes(v)) return `Unknown constant: ${inspect(v)}`;
+                        if (!this.constantList.includes(v)) return `Unknown constant: ${util.inspect(v)}`;
                     },
                     sample: () => null
                 })];
@@ -1154,7 +1194,7 @@
                         },
                         size: value => bins.find(i => !i.validate(value)).getSize(value) + 1,
                         validate: value => {
-                            if (bins.every(bin => bin.validate(value))) return `Value (${inspect(value)}) doesn't match any of the types ${anyOfBin[nameSymbol]}`;
+                            if (bins.every(bin => bin.validate(value))) return `Value (${util.inspect(value)}) doesn't match any of the types ${anyOfBin[nameSymbol]}`;
                         },
                         sample: () => {
                             throw new Error("Cannot make a sample for any.of(), this was most likely caused by instantiating a new struct that includes an any.of() bin.");
@@ -1165,12 +1205,12 @@
 
                 this.makeLiteral = any => {
                     return this.makeBin({
-                        name: `literal(${inspect(any)})`,
+                        name: `literal(${util.inspect(any)})`,
                         write: () => 0,
                         read: () => any,
                         size: () => 0,
                         validate: v => {
-                            if (v !== any) return `Expected ${inspect(any)} but got ${inspect(v)}`
+                            if (v !== any) return `Expected ${util.inspect(any)} but got ${util.inspect(v)}`
                         },
                         sample: () => any
                     });
@@ -1179,8 +1219,9 @@
         }
 
         const lib = new BinJS();
+        lib.default = lib;
 
-        if (module_) module_.exports = lib;
+        if (typeof module !== "undefined") module.exports = lib;
 
         if (typeof window !== "undefined") window.BinJS = lib;
     }

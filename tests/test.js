@@ -1,21 +1,27 @@
-const BinJS = require("../index");
-const fs = require("fs/promises");
+const {default: {set, object, i8, f64, string, bigint, _id}} = require("../index");
 
-const asyncBin = BinJS.makeBin({
-    name: "myAsyncBin",
-    async write(buffer, index) {
-        buffer[index[0]++] = (await fs.readFile("./test.js"))[0];
-    },
-    read(buffer, index) {
-        return buffer[index[0]++];
-    },
-    size: () => 1,
-    validate: () => null,
-    sample: () => 0
+const MyStruct = object.struct({
+    x: i8,
+    y: f64,
+    z: string,
+    t: {
+        a: i8,
+        b: [string, i8]
+    }
 });
 
-(async () => {
-    const buf = await asyncBin.serialize();
-    console.log(buf);
-    console.log(asyncBin.deserialize(buf));
-})();
+const data = {
+    x: 10,
+    y: 5284.25,
+    z: "hello, world!",
+    t: {
+        a: 20,
+        b: ["hello, again!", 125]
+    }
+};
+
+const buf = MyStruct.serialize(data);
+
+console.log(buf);
+
+console.log(MyStruct.deserialize(buf));

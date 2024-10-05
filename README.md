@@ -25,7 +25,7 @@ console.log(BinJS.deserialize(buf)) // 10
 ## Storing complex objects
 
 ```js
-const BinJS = require("stramp")
+import BinJS from "stramp"
 
 const obj = {
     a: 10,
@@ -45,7 +45,7 @@ console.log(BinJS.deserialize(buf)) // { a: 10, b: 'hello, world!', c: { x: 50, 
 This gains 2 bytes in the output buffer size, and it cannot be further shortened.
 
 ```js
-const BinJS = require("stramp")
+import BinJS from "stramp"
 
 const U8ArrayWith10Numbers = BinJS.u8array.fixed(10)
 
@@ -59,7 +59,7 @@ console.log(U8ArrayWith10Numbers.deserialize(buf)) // Uint8Array [ 1, 2, 3, 4, 5
 ## Structured and typed arrays/objects
 
 ```js
-const BinJS = require("stramp")
+import BinJS from "stramp"
 const {string, u8, u16, object, array} = BinJS
 
 const Person = object.struct({
@@ -132,7 +132,7 @@ console.log(VectorStruct.deserialize(buf)) // Vector { x: 10, y: 20 }
 ## Using object.structClass()
 
 ```js
-const BinJS = require("stramp")
+import BinJS from "stramp"
 
 class Vector {
     constructor(x, y) {
@@ -157,7 +157,7 @@ console.log(VectorStruct.deserialize(buf)) // Vector { x: 10, y: 20 }
 ## Storing classes
 
 ```js
-const BinJS = require("stramp")
+import BinJS from "stramp"
 
 class MyClass {
 }
@@ -183,7 +183,7 @@ console.log(BinJS.deserialize(buf)) // MyClass { a: 10, b: 'hello, world!', c: {
 ## Storing classes using object.class()
 
 ```js
-const BinJS = require("stramp")
+import BinJS from "stramp"
 
 class MyClass {
 }
@@ -204,7 +204,7 @@ console.log(myClassType.deserialize(buf)) // MyClass { a: 10, b: 'hello, world!'
 ## Using any.of()
 
 ```js
-const BinJS = require("stramp")
+import BinJS from "stramp"
 
 const i8OrString = BinJS.any.of(BinJS.i8, BinJS.string)
 
@@ -223,7 +223,7 @@ console.log(myAnyOf.serialize(10n)) // <Buffer 03 00 01 00 0a>
 ## Making asynchronous binaries
 
 ```js
-const BinJS = require("stramp")
+import BinJS from "stramp"
 const fs = require("fs/promises")
 
 const asyncBin = BinJS.makeBin({
@@ -252,7 +252,7 @@ const asyncBin = BinJS.makeBin({
 ## Storing functions/constants/runtime values
 
 ```js
-const BinJS = require("stramp")
+import BinJS from "stramp"
 
 function myFunc() {
     return 10
@@ -280,7 +280,7 @@ console.log(myObj === obj) // true
 ## Storing JavaScript supported class instances
 
 ```js
-const BinJS = require("stramp")
+import BinJS from "stramp"
 
 const date = new Date()
 const arr = new Uint16Array([1, 2, 3])
