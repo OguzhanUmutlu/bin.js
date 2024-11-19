@@ -1,5 +1,6 @@
 import {Bin} from "../../Bin";
 import {BufferIndex} from "../../BufferIndex";
+import Stramp from "../../Stramp";
 
 export default class ObjectStructBinConstructor<
     StructData extends { [k: string]: Bin },
@@ -22,7 +23,9 @@ export default class ObjectStructBinConstructor<
 
         for (let i = 0; i < keys.length; i++) {
             const key = keys[i];
-            newStructData[key] = structData[key];
+            let v = structData[key];
+            if (!(v instanceof Bin)) v = Stramp.getStrictTypeOf(v);
+            newStructData[key] = v;
         }
 
         this.structData = newStructData;
@@ -101,7 +104,7 @@ export default class ObjectStructBinConstructor<
 
     extend<N extends { [k: string]: Bin }>(data: N) {
         return new ObjectStructBinConstructor<StructData & N, StructObject & { [k in keyof N]: N[k]["__TYPE__"] }, T>(
-            <any>{...this.structData, data}, this.classConstructor, this.baseName
+            <any>{...this.structData, ...data}, this.classConstructor, this.baseName
         );
     };
 }
