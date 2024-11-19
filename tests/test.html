@@ -1,9 +1,9 @@
 <script type="module">
-    import "../dist/index.esm.js";
+    import X from "../dist/index.js";
 
-    const buf = BinJS.serialize({
+    const buf = X.serialize({
         a: "hello, world"
     });
     console.log(buf);
-    console.log(BinJS.deserialize(buf));
+    console.log(X.deserialize(buf));
 </script>

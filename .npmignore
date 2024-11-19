@@ -3,6 +3,7 @@ tests
 .npmignore
 node_modules
 package-lock.json
-dist/index.js.LICENSE.txt
-rollup.config.js
 tsconfig.json
+rollup.config.mjs
+dist/index.js
+dist/ts

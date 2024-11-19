@@ -1,0 +1,36 @@
+import {Bin} from "../Bin";
+import {BufferIndex} from "../BufferIndex";
+
+export class ConstantBinConstructor<T> extends Bin<T> {
+    constructor(
+        public name: string,
+        public sample: T
+    ) {
+        super();
+    };
+
+    unsafeWrite(bind: BufferIndex, value: T | Readonly<T>): void {
+    };
+
+    read(bind: BufferIndex): T {
+        return this.sample;
+    };
+
+    unsafeSize(value: T | Readonly<T>): number {
+        return 0;
+    };
+
+    findProblem(value: any, strict?: boolean): string | void {
+        if (strict) {
+            if (typeof this.sample === "number" && isNaN(this.sample) && (typeof value !== "number" || !isNaN(value))) {
+                return `Expected the constant value NaN`;
+            } else if (value !== this.sample) return `Expected the constant value ${this.sample}`;
+        }
+    };
+
+    new<K>(name: string, value: K): ConstantBinConstructor<K> {
+        return new ConstantBinConstructor(name, value);
+    };
+}
+
+export default new ConstantBinConstructor("constant", "constant");

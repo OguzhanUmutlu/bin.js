@@ -1,6 +1,6 @@
-# JSBinary
+# Stramp
 
-A JavaScript library that can convert any kind of data into binary that can be restored
+A JavaScript library that can convert any kind of data into binary that can be restored.
 
 # Installation
 
@@ -8,288 +8,346 @@ A JavaScript library that can convert any kind of data into binary that can be r
 npm install stramp
 ```
 
-# Usage
+# Importing
+
+I will be importing the library as `X` in the examples below.
 
 ```js
-const BinJS = require("stramp")
-// or
-import BinJS from "stramp"
-
-const buf = BinJS.serialize(10)
-
-console.log(buf) // <Buffer 0a 0a>
-
-console.log(BinJS.deserialize(buf)) // 10
+import X from "stramp";
 ```
 
-## Storing complex objects
+# Example usage
 
 ```js
-import BinJS from "stramp"
+const myValue = 5716282;
 
+const buffer = X.serialize(myValue);
+
+console.log(buffer); // <Buffer 0a 3a 39 57 00>
+
+const restoredValue = X.deserialize(buffer);
+
+console.log(restoredValue); // 5716282
+```
+
+## What is a Stramp Bin?
+
+A Binary Data Converter is a class that can convert a specific kind of data into a sequences of bytes
+and is able to convert that sequence of bytes back into the same data it was given. It is a both-ways
+lossless conversion. **We will be referring to them as 'Bin's throughout this Readme file and the code itself.**
+
+## Defaults
+
+Stramp comes with the following default types:
+
+* `u8`
+* `u16`
+* `u32`
+* `u64`
+* `i8`
+* `i16`
+* `i32`
+* `i64`
+* `f32`: Not recommended as its low precision, JavaScript uses `f64` by default
+* `f64`
+* `ubigint`
+* `bigint`
+* `string8`
+* `string16`
+* `string32`
+* `cstring`: Null terminated string
+* `bool`
+* `array`: Can hold any of these types, check out [ArrayBin](#array-bin)
+* `set`: Has every feature an array has
+* `arrayBuffer`: u8 typed array, but writes and reads an ArrayBuffer object
+* `buffer`: u8 typed array, but writes and reads a Buffer object
+* `u8array`
+* `u8clampedArray`
+* `u16array`
+* `u32array`
+* `u64array`
+* `i8array`
+* `i16array`
+* `i32array`
+* `i64array`
+* `f32array`
+* `f64array`
+* `object`: Can hold any of these types, check out [ObjectBin](#object-bin)
+* `map`: Holds key-value pairs that can be any of these types
+* `class`: Can hold class instances if the class has been registered in it
+* `date`
+* `regexp`
+* `any`
+* `ignore`: Writes nothing no matter what, reads undefined
+* `null`
+* `undefined`
+* `true`
+* `false`
+* `zero`
+* `bigZero`
+* `NaN`
+* `inf`
+* `negInf`
+
+## A comprehensive example
+
+```js
 const obj = {
-    a: 10,
-    b: "hello, world!",
-    c: {x: 50, y: 100}
+    name: "John Doe",
+    age: 42,
+    address: {
+        street: "123 Main St",
+        city: "Anytown",
+        state: "CA",
+        zip: "12345"
+    },
+    phoneNumbers: [1234567890, 9876543210],
+    pets: ["cat", "dog"],
+    favoriteColors: ["red", "blue", "green"],
+    isMarried: true,
+    children: null,
+    spouse: undefined,
+    favoriteNumber: 3.14159,
+    favoriteMathConstant: Math.PI,
+    favoriteArray: [1, "Apple Pie", true, null, undefined, 258724n, 3.14159, Math.PI]
+};
+
+const buffer = X.serialize(obj);
+
+console.log(buffer); // <Buffer 2c 0c 04 6e 61 6d 65 29 08 4a 6f 68 6e 20 44 ... 308 more bytes>
+// This saved us 67 bytes compared to JSON! (Will save more than 3 times when using structs)
+
+const restoredObj = X.deserialize(buffer);
+
+console.log(restoredObj); // Will have the same values as obj
+```
+
+## Array Bin
+
+### Default array
+
+The default array can hold any amount of anything.
+
+Example:
+
+```js
+const myArray = [1, "Apple Pie", true, null, undefined, 258724n, 3.14159, Math.PI];
+
+const buffer = X.serialize(myArray);
+
+// First byte indicates that it's an array
+// 2-5 bytes indicate the length of the array as a u32
+// The rest of the bytes are the array's values with their types as a single byte in front
+console.log(buffer); // <Buffer 17 08 00 00 00 0c 01 29 09 41 70 70 6c 65 20 50 69 65 14 10 11 09 a4 f2 03 00 00 00 00 00 03 6e 86 1b f0 f9 21 09 40 03 18 2d 44 54 fb 21 09 40>
+
+const restoredArray = X.deserialize(buffer);
+
+console.log(restoredArray); // Will have the same values as myArray
+```
+
+### Typed dynamic sized arrays
+
+```js
+const myType = X.array.typed(X.u8);
+
+const myArray = [5, 3, 1, 2, 4];
+
+const buffer = myType.serialize(myArray);
+
+// First 4 bytes are the size of the array as a u32
+// The rest of the bytes are the array's values
+console.log(buffer); // <Buffer 05 00 00 00 05 03 01 02 04>
+
+const restoredArray = myType.deserialize(buffer);
+
+console.log(restoredArray); // [5, 3, 1, 2, 4]
+
+// You can change the array's length's bytes using this:
+const myNewType = myType.lengthBytes(X.u8); // Uses 1 byte for the length
+```
+
+### Single typed fixed sized arrays
+
+```js
+const myType = X.array.typed(X.u8).sized(5);
+
+const myArray = [5, 3, 1, 2, 4];
+
+const buffer = myType.serialize(myArray);
+
+console.log(buffer); // <Buffer 05 03 01 02 04>
+
+const restoredArray = myType.deserialize(buffer);
+
+console.log(restoredArray); // [5, 3, 1, 2, 4]
+```
+
+### Array structs
+
+```js
+const myStruct = X.array.struct([X.u8, X.string8, X.null]);
+
+const myArray = [5, "Hello", null];
+
+const buffer = myStruct.serialize(myArray);
+
+// 1st byte: The first element in the array
+// 2nd byte: Length of the string
+// 3-7th bytes: The string
+// Notice that it doesn't store the null, because it already knows it has to be there.
+console.log(buffer); // <Buffer 05 05 48 65 6c 6c 6f>
+
+const restoredArray = myStruct.deserialize(buffer);
+
+console.log(restoredArray); // [5, "Hello", null]
+```
+
+## Object Bin
+
+### Default object
+
+```js
+const myObject = {
+    name: "John Doe",
+    age: 30,
+    ageBig: 30n
+};
+
+const buffer = X.serialize(myObject);
+
+console.log(buffer); // <Buffer 2c 03 00 00 00 04 00 00 00 6e 61 6d 65 29 08 4a 6f 68 6e 20 44 6f 65 03 00 00 00 61 67 65 0c 1e 06 00 00 00 61 67 65 42 69 67 0c 1e>
+
+const restoredObject = X.deserialize(buffer);
+
+console.log(restoredObject); // Will have the same values as myObject
+```
+
+### Typed dynamic sized objects
+
+```js
+// Note that the keyTyped only accepts a string bin
+const myType = X.object.keyTyped(X.string8).valueTyped(X.u8);
+
+const myObject = {
+    name: "John Doe",
+    age: 30,
+    ageBig: 30n
+};
+
+const buffer = myType.serialize(myObject);
+
+console.log(buffer); // <Buffer 2c 03 00 00 00 04 00 00 00 6e 61 6d 65 29 08 4a 6f 68 6e 20 44 6f 65 03 00 00 00 61 67 65 0c 1e 06 00 00 00 61 67 65 42 69 67 0c 1e>
+
+const restoredObject = myType.deserialize(buffer);
+
+console.log(restoredObject); // Will have the same values as myObject
+```
+
+### Object structs
+
+```js
+const myType = X.object.struct({
+    age: X.u8,
+    name: X.string8,
+    numbers: X.array.typed(X.u8).sized(5)
+});
+
+const myObject = {
+    age: 30,
+    name: "John Doe",
+    numbers: [1, 2, 3, 4, 5]
+};
+
+const buffer = myType.serialize(myObject);
+
+// First byte is the age
+// Second byte is the length of the name
+// 3-7th bytes is the name
+// 8-12th bytes are the numbers array
+console.log(buffer); // <Buffer 1e 08 4a 6f 68 6e 20 44 6f 65 01 02 03 04 05>
+// This drops 50 bytes of JSON down to 15 bytes! Meaning 1000 of this object would gain
+// you 35000 bytes.
+
+const restoredObject = myType.deserialize(buffer);
+
+console.log(restoredObject); // Will have the same values as myObject
+```
+
+## Using classes
+
+The simple way:
+
+```js
+class Vector {
+    x = 0.1;
+    y = 0.1;
 }
 
-const buf = BinJS.serialize(obj)
+X.class.add(Vector);
 
-console.log(buf) // <Buffer 26 61 00 0a 0a 62 00 14 0d 68 65 6c 6c 6f 2c 20 77 6f 72 6c 64 21 63 00 26 78 00 0a 32 79 00 0a 64 01 01>
+const myVector = new Vector();
 
-console.log(BinJS.deserialize(buf)) // { a: 10, b: 'hello, world!', c: { x: 50, y: 100 } }
+const buffer = X.serialize(myVector);
+
+console.log(buffer); // <Buffer 2f 00 02 00 00 00 01 00 00 00 78 03 9a 99 99 99 99 99 b9 3f 01 00 00 00 79 03 9a 99 99 99 99 99 b9 3f>
+// The result is too long though as it doesn't know the types of the properties.
+
+const restoredVector = X.deserialize(buffer);
+
+console.log(restoredVector); // Will have the same values as myVector
 ```
 
-## Using built-in arrays with fixed length
-
-This gains 2 bytes in the output buffer size, and it cannot be further shortened.
+The memory-efficient way:
 
 ```js
-import BinJS from "stramp"
-
-const U8ArrayWith10Numbers = BinJS.u8array.fixed(10)
-
-const buf = U8ArrayWith10Numbers.serialize(new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]))
-
-console.log(buf) // <Buffer 01 02 03 04 05 06 07 08 09 0a>
-
-console.log(U8ArrayWith10Numbers.deserialize(buf)) // Uint8Array [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ]
-```
-
-## Structured and typed arrays/objects
-
-```js
-import BinJS from "stramp"
-const {string, u8, u16, object, array} = BinJS
-
-const Person = object.struct({
-    name: string,
-    age: u8,
-    height: u16
-})
-
-// creates a dynamically sized array that includes Person struct
-const People = array.typed(Person)
-// Max length of the array is 2^16 = 65536, you can change it like this:
-// const people = array.typed(person, null, 4)
-// The second argument indicates the length of the array, null means it can be anything.
-// This will use 4 bytes, resulting with a u32 int, 2^32 = 4294967295
-// Length bytes options: 1, 2, 4, 8
-
-const buf = People.serialize([
-    {name: "John", age: 30, height: 180},
-    {name: "Jane", age: 25, height: 165}
-])
-
-console.log(buf) // <Buffer 02 00 1e b4 00 4a 6f 68 6e 00 19 a5 00 4a 61 6e 65 00 01>
-// Readable version: [2, 0, 30, 180, 0, J, o, h, n, 0, 25, 165, 0, J, a, n, e, 0, 1]
-// The first two bytes indicate the number of elements in the array as u16.
-// There is a 0 after 180 and 165 because it's a u16.
-// The 0 after the strings indicates the end of the string.
-// The 1 in the end indicates the end of the array.
-
-console.log(People.deserialize(buf))
-// [
-//   { age: 30, height: 180, name: 'John' },
-//   { age: 25, height: 165, name: 'Jane' }
-// ]
-
-const myPerson = new Person()
-myPerson.name = "John"
-myPerson.age = 30
-myPerson.height = 180
-
-const buf2 = myPerson.buffer // It's that easy! No need to use .serialize() or .deserialize()
-
-buf2[5] = 40 // Change something random
-
-myPerson.buffer = buf2 // Load it back
-
-console.log(myPerson) // Struct { age: 30, height: 180, name: 'Jo(n' }
-// Apparently we changed the name to 'Jo(n'
-
 class Vector {
     constructor(x, y) {
-        this.x = x
-        this.y = y
-    }
+        this.x = x;
+        this.y = y;
+    };
 }
 
-const VectorStruct = object.struct({
-    x: u8,
-    y: u8
-}).class(Vector, ({x, y}) => new Vector(x, y))
+const VectorType = X.object
+    .struct({x: X.f64, y: X.f64})
+    .withConstructor(obj => new Vector(obj.x, obj.y));
 
-const myVec = new Vector(10, 20)
+const myVector = new Vector(6346.5213, 5123.1236);
 
-const buf = VectorStruct.serialize(myVec)
+const buffer = VectorType.serialize(myVector);
 
-console.log(buf) // <Buffer 0a 14>
+console.log(buffer); // <Buffer 68 b3 ea 73 85 ca b8 40 c9 e5 3f a4 1f 03 b4 40>
+// This small change of using a struct reduces the byte size to only 16 bytes! (8 bytes per number because f64 has 64 bits)
 
-console.log(VectorStruct.deserialize(buf)) // Vector { x: 10, y: 20 }
+const restoredVector = VectorType.deserialize(buffer);
+
+console.log(restoredVector); // Vector { x: 6346.5213, y: 5123.1236 }
 ```
 
-## Using object.structClass()
+## The limitations
+
+Stramp cannot convert symbols, functions or class instances unless you have manually introduced them
+to their respective Bins.
+
+Here's an example on runtime values:
 
 ```js
-import BinJS from "stramp"
-
-class Vector {
-    constructor(x, y) {
-        this.x = x
-        this.y = y
-    }
+function A() {
 }
 
-const VectorStruct = BinJS.object.structClass(new Vector(-1000, -1000)) // And that's it!
-// This will do this: BinJS.object.struct({ x: i16, y: i16 }).class(Vector)
-// The drawback: The types of the properties are minimally selected. Like if it was 1000,1000 it would have gone with u16 instead of i16.
-
-const myVec = new Vector(10, 20)
-
-const buf = VectorStruct.serialize(myVec)
-
-console.log(buf) // <Buffer 0a 00 14 00>
-
-console.log(VectorStruct.deserialize(buf)) // Vector { x: 10, y: 20 }
-```
-
-## Storing classes
-
-```js
-import BinJS from "stramp"
-
-class MyClass {
+function B() {
 }
 
-const myInstance = new MyClass()
-myInstance.a = 10
-myInstance.b = "hello, world!"
-myInstance.c = {x: 50, y: 100}
-
-BinJS.setOptions({
-    // if order of the classes changes, the output will be different
-    // you can add new classes to the end of the list
-    classes: [MyClass]
-})
-
-const buf = BinJS.serialize(myInstance)
-
-console.log(buf) // <Buffer 29 00 00 61 00 0a 0a 62 00 14 0d 68 65 6c 6c 6f 2c 20 77 6f 72 6c 64 21 63 00 26 78 00 0a 32 79 00 0a 64 01 01>
-
-console.log(BinJS.deserialize(buf)) // MyClass { a: 10, b: 'hello, world!', c: { x: 50, y: 100 } }
-```
-
-## Storing classes using object.class()
-
-```js
-import BinJS from "stramp"
-
-class MyClass {
+class C {
 }
 
-const x = new MyClass()
-x.a = 10
-x.b = "hello, world!"
+// Note that the order is important
+// If you were to serialize it, change the order of these values,
+// the deserialized value will be different and may even be corrupted
+const myBin = X.any.ofValues(A, B, C);
 
-const myClassType = BinJS.object.class(MyClass)
+const buffer = myBin.serialize(A); // <Buffer 00>
 
-const buf = myClassType.serialize(x)
+const restoredValue = myBin.deserialize(buffer); // A
 
-console.log(buf) // <Buffer 61 00 0a 0a 62 00 14 0d 68 65 6c 6c 6f 2c 20 77 6f 72 6c 64 21 01>
-
-console.log(myClassType.deserialize(buf)) // MyClass { a: 10, b: 'hello, world!' }
-```
-
-## Using any.of()
-
-```js
-import BinJS from "stramp"
-
-const i8OrString = BinJS.any.of(BinJS.i8, BinJS.string)
-
-console.log(i8OrString.serialize(10)) // <Buffer 00 8a>
-console.log(i8OrString.serialize("hello")) // <Buffer 01 68 65 6c 6c 6f 00>
-
-
-const myAnyOf = BinJS.any.of("hello", 10, true, BinJS.bigint)
-
-console.log(myAnyOf.serialize("hello")) // <Buffer 00>
-console.log(myAnyOf.serialize(10)) // <Buffer 01>
-console.log(myAnyOf.serialize(true)) // <Buffer 02>
-console.log(myAnyOf.serialize(10n)) // <Buffer 03 00 01 00 0a>
-```
-
-## Making asynchronous binaries
-
-```js
-import BinJS from "stramp"
-const fs = require("fs/promises")
-
-const asyncBin = BinJS.makeBin({
-    name: "myAsyncBin",
-    async write(buffer, index, filename) {
-        // Reads the first character of the file
-        // and stores it in the buffer
-        buffer[index[0]++] = (await fs.readFile(filename))[0]
-    },
-    read(buffer, index) {
-        // Reads the written character
-        return buffer[index[0]++]
-    },
-    size: () => 1, // 1 byte
-    validate: () => null, // no validation
-    sample: () => 0 // 0 as a sample
-})
-
-(async () => {
-    const buf = await asyncBin.serialize("./myFile.txt")
-    console.log(buf) // <Buffer 63>
-    console.log(asyncBin.deserialize(buf)) // 99
-})()
-```
-
-## Storing functions/constants/runtime values
-
-```js
-import BinJS from "stramp"
-
-function myFunc() {
-    return 10
-}
-
-const myObj = {x: 10}
-
-BinJS.setOptions({
-    // if order of the constantList changes, the output will be different
-    // you can add new functions/constants to the end of the list
-    constantList: [myFunc, myObj]
-})
-
-const buf = BinJS.serialize([myFunc, myObj])
-
-console.log(buf) // <Buffer 18 2a 00 00 26 78 00 0a 0a 01 01>
-
-const [fn, obj] = BinJS.deserialize(buf)
-console.log(fn) // [Function: myFunc]
-console.log(fn === myFunc) // true
-console.log(obj) // { x: 10 }
-console.log(myObj === obj) // true
-```
-
-## Storing JavaScript supported class instances
-
-```js
-import BinJS from "stramp"
-
-const date = new Date()
-const arr = new Uint16Array([1, 2, 3])
-const set = new Set([1, 2, 3])
-const map = new Map([[1, 2], [3, 4]])
-
-const buf = BinJS.serialize({date, arr, set, map})
-
-console.log(buf) // <Buffer 26 64 61 74 65 00 28 58 a3 a3 e1 91 01 00 00 61 72 72 00 1c 0a 01 0a 02 0a 03 01 73 65 74 00 19 0a 01 0a 02 0a 03 01 6d 61 70 00 27 0a 01 0a 02 0a 03 ... 4 more bytes>
-
-console.log(BinJS.deserialize(buf)) // { date: 2024-09-14T07:37:04.402Z, arr: Uint16Array(3) [ 1, 2, 3 ], set: Set(3) { 1, 2, 3 }, map: Map(2) { 1 => 2, 3 => 4 } }
+console.log(restoredValue === A); // true
 ```
