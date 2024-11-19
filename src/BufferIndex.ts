@@ -131,6 +131,10 @@ export class BufferIndex {
         buffer.copy(this.buffer, this.inc(buffer.length));
     };
 
+    getBuffer() {
+        return this.buffer.subarray(this.index);
+    };
+
     toString(encoding: BufferEncoding, length: number) {
         return this.buffer.toString(encoding, this.index, this.index += length);
     };
