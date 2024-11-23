@@ -15,7 +15,7 @@ export default new class TrueBin extends Bin<true> {
         return 0;
     };
 
-    findProblem(value: any, strict = false): string | void {
-        if (strict && value !== true) return "Expected true";
+    findProblem(value: any, strict = false) {
+        if (strict && value !== true) return this.makeProblem("Expected true");
     };
 }

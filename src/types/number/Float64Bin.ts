@@ -17,7 +17,7 @@ export default new class Float64Bin extends Bin<number> {
         return 8;
     };
 
-    findProblem(value: any): string | void {
-        if (typeof value !== "number") return "Expected a number";
+    findProblem(value: any) {
+        if (typeof value !== "number") return this.makeProblem("Expected a number");
     };
 }

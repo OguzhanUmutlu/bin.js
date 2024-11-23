@@ -15,7 +15,7 @@ export default new class FalseBin extends Bin<false> {
         return 0;
     };
 
-    findProblem(value: any, strict = false): string | void {
-        if (strict && value !== false) return "Expected false";
+    findProblem(value: any, strict = false) {
+        if (strict && value !== false) return this.makeProblem("Expected false");
     };
 }

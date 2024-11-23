@@ -19,7 +19,7 @@ export default new class BigIntBin extends Bin<bigint> {
         return UBigIntBin.unsafeSize(value) + 1;
     };
 
-    findProblem(value: any, _: any): string | void {
-        if (typeof value !== "bigint") return "Expected a big integer";
+    findProblem(value: any, _: any) {
+        if (typeof value !== "bigint") return this.makeProblem("Expected a big integer");
     };
 }

@@ -15,7 +15,7 @@ export default new class NegativeInfinityBin extends Bin<number> {
         return 0;
     };
 
-    findProblem(value: any, strict = false): string | void {
-        if (strict && value !== -Infinity) return "Expected -Infinity";
+    findProblem(value: any, strict = false) {
+        if (strict && value !== -Infinity) return this.makeProblem("Expected -Infinity");
     };
 }

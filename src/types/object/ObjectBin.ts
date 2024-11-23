@@ -67,7 +67,7 @@ class ObjectBinConstructor<
     };
 
     findProblem(value: any, strict = false) {
-        if (value === null || typeof value !== "object") return "Expected an object";
+        if (value === null || typeof value !== "object") return this.makeProblem("Expected an object");
 
         const keyType = this.keyType;
         const valueType = this.valueType ?? Stramp;
@@ -76,11 +76,11 @@ class ObjectBinConstructor<
         for (let i = 0; i < keys.length; i++) {
             const key = keys[i];
             const keyProblem = keyType.findProblem(key, strict);
-            if (keyProblem) return `Object key failed: ${keyProblem}`;
+            if (keyProblem) return keyProblem.shifted(`[${JSON.stringify(key)}]`, this);
 
             const val = value[key];
             const valueProblem = valueType.findProblem(val, strict);
-            if (valueProblem) return `Object value failed: ${valueProblem}`;
+            if (valueProblem) return valueProblem.shifted(`[${JSON.stringify(key)}]`, this);
         }
     };
 

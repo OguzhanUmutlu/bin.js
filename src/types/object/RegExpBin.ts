@@ -18,7 +18,7 @@ export default new class RegExpBin extends Bin<RegExp> {
         return Stramp.unsafeSize(value);
     };
 
-    findProblem(value: any, _ = false): string | void | undefined {
-        if (!(value instanceof RegExp)) return "Expected a RegExp";
+    findProblem(value: any, _ = false) {
+        if (!(value instanceof RegExp)) return this.makeProblem("Expected a RegExp");
     };
 }

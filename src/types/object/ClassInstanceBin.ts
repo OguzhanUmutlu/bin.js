@@ -37,11 +37,11 @@ export default new class ClassInstanceBin<K extends EmptyClassType[]> extends Bi
         return this.numBinSize + ObjectBin.unsafeSize(value);
     };
 
-    findProblem(value: any, strict = false): string | void | undefined {
-        if (value === null || typeof value !== "object") return "Expected an object";
+    findProblem(value: any, strict = false) {
+        if (value === null || typeof value !== "object") return this.makeProblem("Expected an object");
 
         const index = this.classes.indexOf(value.constructor);
-        if (index === -1) return `Expected one of ${this.classes.map(c => c.name).join(", ")}`;
+        if (index === -1) return this.makeProblem(`Expected one of ${this.classes.map(c => c.name).join(", ")}`);
 
         const problem = ObjectBin.findProblem(value, strict);
         if (problem) return problem;

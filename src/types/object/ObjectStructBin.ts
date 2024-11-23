@@ -70,8 +70,8 @@ export default class ObjectStructBinConstructor<
         return size;
     };
 
-    findProblem(value: any, strict = false): string | void | undefined {
-        if (value === null || typeof value !== "object") return "Expected an object";
+    findProblem(value: any, strict = false) {
+        if (value === null || typeof value !== "object") return this.makeProblem("Expected an object");
 
         const structData = this.structData!;
         const keys = Object.keys(structData);
@@ -80,7 +80,7 @@ export default class ObjectStructBinConstructor<
             const key = keys[i];
             const type = structData[key];
             const problem = type.findProblem(value[key], strict);
-            if (problem) return problem;
+            if (problem) return problem.shifted(`[${JSON.stringify(key)}]`, this);
         }
     };
 

@@ -32,9 +32,9 @@ export default class LengthBasedStringBin extends Bin<string> {
         return this.lengthBytes + value.length;
     };
 
-    findProblem(value: any, _: any): string | void {
-        if (typeof value !== "string") return "Expected a string";
-        if (this.lengthBin.findProblem(value.length)) return `Expected string length to be a ${this.lengthBin.name}`;
+    findProblem(value: any, _: any) {
+        if (typeof value !== "string") return this.makeProblem("Expected a string");
+        if (this.lengthBin.findProblem(value.length)) return this.makeProblem(`Expected string length to be a ${this.lengthBin.name}`);
     };
 }
 

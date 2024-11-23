@@ -60,18 +60,18 @@ class MapBinConstructor<
         return size;
     };
 
-    findProblem(map: any, strict = false): string | void | undefined {
-        if (map === null || typeof map !== "object") return "Expected an object";
+    findProblem(map: any, strict = false) {
+        if (map === null || typeof map !== "object") return this.makeProblem("Expected an object");
 
         const keyType = this.keyType ?? Stramp;
         const valueType = this.valueType ?? Stramp;
 
         for (const [key, value] of Object.entries(map)) {
             const keyError = keyType.findProblem(key, strict);
-            if (keyError) return keyError;
+            if (keyError) return keyError.shifted(`[${JSON.stringify(key)}]`, this);
 
             const valueError = valueType.findProblem(value, strict);
-            if (valueError) return valueError;
+            if (valueError) return valueError.shifted(`[${JSON.stringify(key)}]`, this);
         }
     };
 

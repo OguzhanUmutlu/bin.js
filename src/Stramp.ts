@@ -83,6 +83,7 @@ class Stramp extends Bin {
 
     f32 = Float32Bin;
     f64 = Float64Bin;
+    number = Float64Bin;
 
     ubigint = UBigIntBin;
     bigint = BigIntBin;
@@ -93,6 +94,7 @@ class Stramp extends Bin {
     cstring = CStringBin;
 
     bool = BooleanBin;
+    boolean = BooleanBin;
 
     array = ArrayBin;
     set = SetBin;
@@ -137,14 +139,14 @@ class Stramp extends Bin {
         return 1 + type.unsafeSize(value);
     };
 
-    findProblem(value: any, _ = false): string | void | undefined {
+    findProblem(value: any, _ = false) {
         const type = this.getTypeOf(value);
-        if (!type) return "Unknown type";
+        if (!type) return this.makeProblem("Unknown type");
     };
 
     getTypeOf<T>(value: T): Bin<T> | null;
 
-    getTypeOf(value: any) {
+    getTypeOf(value: any): any {
         if (value === true) return TrueBin;
         if (value === false) return FalseBin;
         if (value === null) return NullBin;

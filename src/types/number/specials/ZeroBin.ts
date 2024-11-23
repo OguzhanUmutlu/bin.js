@@ -15,7 +15,7 @@ export default new class ZeroBin extends Bin<0> {
         return 0;
     };
 
-    findProblem(value: any, strict = false): string | void {
-        if (strict && value !== 0) return "Expected 0";
+    findProblem(value: any, strict = false) {
+        if (strict && value !== 0) return this.makeProblem("Expected 0");
     };
 }

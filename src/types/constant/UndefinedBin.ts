@@ -15,7 +15,7 @@ export default new class UndefinedBin extends Bin<undefined> {
         return 0;
     };
 
-    findProblem(value: any, strict = false): string | void {
-        if (strict && value !== undefined) return "Expected undefined";
+    findProblem(value: any, strict = false) {
+        if (strict && value !== undefined) return this.makeProblem("Expected undefined");
     };
 }

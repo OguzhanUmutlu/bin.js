@@ -15,7 +15,7 @@ export default new class NullBin extends Bin<null> {
         return 0;
     };
 
-    findProblem(value: any, strict = false): string | void {
-        if (strict && value !== null) return "Expected null";
+    findProblem(value: any, strict = false) {
+        if (strict && value !== null) return this.makeProblem("Expected null");
     };
 }

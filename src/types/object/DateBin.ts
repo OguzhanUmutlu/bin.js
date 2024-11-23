@@ -17,10 +17,10 @@ export default new class DateBin extends Bin<Date> {
         return 4;
     };
 
-    findProblem(value: any, strict = false): string | void | undefined {
+    findProblem(value: any, strict = false) {
         if (!(value instanceof Date)) {
-            if (strict || typeof value !== "number") return "Expected a Date";
-            if (value < 0) return "Expected a positive number";
+            if (strict || typeof value !== "number") return this.makeProblem("Expected a Date");
+            if (value < 0) return this.makeProblem("Expected a positive number");
         }
     };
 }

@@ -20,11 +20,11 @@ export class ConstantBinConstructor<T> extends Bin<T> {
         return 0;
     };
 
-    findProblem(value: any, strict?: boolean): string | void {
+    findProblem(value: any, strict?: boolean) {
         if (strict) {
             if (typeof this.sample === "number" && isNaN(this.sample) && (typeof value !== "number" || !isNaN(value))) {
-                return `Expected the constant value NaN`;
-            } else if (value !== this.sample) return `Expected the constant value ${this.sample}`;
+                return this.makeProblem(`Expected the constant value NaN`);
+            } else if (value !== this.sample) return this.makeProblem(`Expected the constant value ${this.sample}`);
         }
     };
 

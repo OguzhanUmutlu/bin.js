@@ -13,8 +13,9 @@ import Float32Bin from "../number/Float32Bin";
 import Float64Bin from "../number/Float64Bin";
 import {Buffer} from "buffer";
 import {DefaultLengthBin} from "../../Utils";
+import {ArrayStructBinConstructor} from "./ArrayStructBin";
 
-type SizedArray<T, N extends number, R extends T[] = []> = R["length"] extends N ? R : SizedArray<T, N, [...R, T]>;
+// type SizedArray<T, N extends number, R extends T[] = []> = R["length"] extends N ? R : SizedArray<T, N, [...R, T]>;
 
 // all array type combinations:
 // - any[]       type=null   types=null        fixedSize=null
@@ -38,26 +39,15 @@ export class ArrayBinConstructor<
         public fixedTypeName: (fixed: number, type: Bin) => string,
         public baseName: string,
         public type: Bin<K> | null = null,
-        public types: Bin<K>[] | null = null,
         public fixedSize: number | null = null,
-        public lengthBin: Bin<number> | null = null,
+        public lengthBin: Bin<number> = DefaultLengthBin,
         public baseClass: new (...args: any[]) => T
     ) {
         super();
 
-        if (types && fixedSize) {
-            throw new Error(`Cannot have both fixed types and fixed size on ${baseName} binary`);
-        }
-
-        if (types && type) {
-            throw new Error(`Cannot have both fixed types and type on ${baseName} binary`);
-        }
-
         this.lengthBinSize = this.lengthBin.unsafeSize(1);
 
-        if (this.types) {
-            this.name = this.typesName(<any>this.types);
-        } else if (this.fixedSize) {
+        if (this.fixedSize) {
             if (this.type) {
                 this.name = this.fixedTypeName(this.fixedSize, this.type);
             } else {
@@ -68,34 +58,14 @@ export class ArrayBinConstructor<
         } else {
             this.name = this.baseName;
         }
-
-        if (this.types) {
-            this.unsafeWrite = this.unsafeWriteTypes;
-            this.read = this.readTypes;
-            this.unsafeSize = this.unsafeSizeTypes;
-            this.findProblem = this.findProblemTypes;
-            this.getSample = this.getSampleTypes;
-        } else if (this.fixedSize) {
-            this.unsafeWrite = this.unsafeJustWrite;
-            this.read = this.readFixed;
-            this.unsafeSize = this.unsafeSizeNonTypes;
-            this.getSample = this.getSampleFixed;
-        } else {
-            this.unsafeWrite = this.unsafeWriteType;
-            this.read = this.readNonFixed;
-            this.unsafeSize = this.unsafeSizeNonTypes;
-        }
     };
 
-    private unsafeWriteTypes(bind: BufferIndex, value: T) {
-        const arr = Array.from(value);
-        const types = this.types!;
-        for (let i = 0; i < types.length; i++) {
-            types[i].unsafeWrite(bind, arr[i]);
+    unsafeWrite(bind: BufferIndex, value: T): void {
+        if (!this.fixedSize) {
+            let length: number = "size" in value ? value.size : (<any>value).length;
+            this.lengthBin.unsafeWrite(bind, length);
         }
-    };
 
-    private unsafeJustWrite(bind: BufferIndex, value: T) { // typed or not
         const type = this.type || Stramp;
         const arr = Array.from(value);
         for (let i = 0; i < arr.length; i++) {
@@ -103,35 +73,8 @@ export class ArrayBinConstructor<
         }
     };
 
-    private unsafeWriteType(bind: BufferIndex, value: T) {
-        let length: number = "size" in value ? value.size : (<any>value).length;
-        this.lengthBin.unsafeWrite(bind, length);
-
-        this.unsafeJustWrite(bind, value);
-    };
-
-    private readTypes(bind: BufferIndex): T {
-        const types = this.types!;
-        const length = types.length;
-        const result = new Array(length);
-
-        for (let i = 0; i < length; i++) {
-            result[i] = types[i].read(bind);
-        }
-
-        return <any>this.baseClass === Array ? <any>result : new this.baseClass(result);
-    }
-
-    private readFixed(bind: BufferIndex): T {
-        return this.readCommon(bind, this.fixedSize!);
-    };
-
-    private readNonFixed(bind: BufferIndex): T {
-        const length = this.lengthBin.read(bind);
-        return this.readCommon(bind, length);
-    };
-
-    private readCommon(bind: BufferIndex, length: number): T {
+    read(bind: BufferIndex): T {
+        const length = this.fixedSize ?? this.lengthBin.read(bind);
         const result = new Array(length);
 
         const type = this.type || Stramp;
@@ -142,20 +85,8 @@ export class ArrayBinConstructor<
         return <any>this.baseClass === Array ? <any>result : new this.baseClass(result);
     };
 
-    private unsafeSizeTypes(value: T): number {
-        let size = 0;
-        const types = this.types!;
-        const arr = Array.from(value);
-
-        for (let i = 0; i < types.length; i++) {
-            size += types[i].unsafeSize(arr[i]);
-        }
-
-        return size;
-    };
-
-    private unsafeSizeNonTypes(value: T): number {
-        let size = this.fixedSize ? 0 : 4;
+    unsafeSize(value: T): number {
+        let size = this.fixedSize ? 0 : this.lengthBinSize;
         const type = this.type || Stramp;
         const arr = Array.from(value);
         const length = arr.length;
@@ -167,80 +98,31 @@ export class ArrayBinConstructor<
         return size;
     };
 
-    private findProblemCommon(value: any, strict = false) {
-        if (value === null || typeof value !== "object" || !(Symbol.iterator in value)) return "Expected an iterable";
+    findProblem(value: any, strict = false) {
+        if (value === null || typeof value !== "object" || !(Symbol.iterator in value)) return this.makeProblem("Expected an iterable");
 
-        if (strict && value.constructor !== this.baseClass) return `Expected an iterable of ${this.baseName}`;
-    };
-
-    private findProblemTypes(value: any, strict = false) {
-        const common = this.findProblemCommon(value, strict);
-        if (common) return common;
-
-        const types = this.types!;
-        const arr = Array.from(value);
-
-        if (arr.length !== types.length) return "Array length mismatch";
-
-        for (let i = 0; i < types.length; i++) {
-            const type = types[i];
-            const problem = type.findProblem(arr[i], strict);
-            if (problem) return problem;
-        }
-    }
-
-    unsafeWrite(_bind: BufferIndex, _value: T): void {
-    };
-
-    read(_bind: BufferIndex): T {
-        return <T><any>void 0;
-    };
-
-    unsafeSize(_value: T): number {
-        return 0;
-    };
-
-    findProblem(value: any, strict = false): string | void | undefined {
-        const common = this.findProblemCommon(value, strict);
-        if (common) return common;
+        if (strict && value.constructor !== this.baseClass) return this.makeProblem(`Expected an iterable of ${this.baseName}`);
 
         const type = this.type || Stramp;
         const arr = Array.from(value);
 
         for (let i = 0; i < arr.length; i++) {
             const problem = type.findProblem(arr[i], strict);
-            if (problem) return problem;
+            if (problem) return problem.shifted(`[${i}]`, this);
         }
     };
 
-    private getSampleTypes(): T {
-        const types = this.types!;
-        let result = new Array(types.length);
+    get sample(): T {
+        if (!this.fixedSize) return new this.baseClass();
 
-        for (let i = 0; i < types.length; i++) {
-            result[i] = types[i].sample;
-        }
-
-        return new this.baseClass(result);
-    };
-
-    private getSampleFixed(): T {
         const type = this.type || Stramp;
-        const result = new Array(this.fixedSize!);
+        const result = new Array(this.fixedSize);
 
-        for (let i = 0; i < this.fixedSize!; i++) {
+        for (let i = 0; i < this.fixedSize; i++) {
             result[i] = type.sample;
         }
 
         return new this.baseClass(result);
-    };
-
-    private getSample(): T {
-        return new this.baseClass();
-    }
-
-    get sample(): T {
-        return this.getSample();
     };
 
     lengthBytes<N extends Bin<number>>(len: N) {
@@ -251,7 +133,6 @@ export class ArrayBinConstructor<
             this.fixedTypeName,
             this.baseName,
             this.type,
-            this.types,
             this.fixedSize,
             len,
             <any>this.baseClass
@@ -266,7 +147,6 @@ export class ArrayBinConstructor<
             this.fixedTypeName,
             this.baseName,
             this.type,
-            null,
             fixedSize,
             this.lengthBin,
             <any>this.baseClass
@@ -281,36 +161,45 @@ export class ArrayBinConstructor<
             this.fixedTypeName,
             this.baseName,
             type,
-            null,
             this.fixedSize,
             this.lengthBin,
             <any>this.baseClass
         );
     };
 
-    struct<N extends any[]>(types: Bin<N[number]>[]) {
-        return new ArrayBinConstructor<ClassType, N[number]>(
+    classed<CT extends new (...args: any[]) => Iterable<any>>(clazz: CT) {
+        return new ArrayBinConstructor<InstanceType<CT>, K>(
             this.typesName,
             this.typeName,
             this.fixedName,
             this.fixedTypeName,
             this.baseName,
-            null,
-            types,
-            null,
+            this.type,
+            this.fixedSize,
             this.lengthBin,
+            <any>clazz
+        );
+    };
+
+    struct<N extends any[]>(types: Bin<N[number]>[]) {
+        return new ArrayStructBinConstructor<ClassType, N[number]>(
+            this.typesName,
+            this.typeName,
+            this.fixedName,
+            this.fixedTypeName,
+            this.baseName,
+            types,
             <any>this.baseClass
         );
     };
 }
 
 export default new ArrayBinConstructor<"array">(
-    (types: Bin[]) => `[${types.map(t => t.name).join(", ")}]`,
+    (types: Bin[]) => `[ ${types.map(t => t.name).join(", ")} ]`,
     (type: Bin) => `${type.name}[]`,
     (fixed: number) => `any[${fixed}]`,
     (fixed: number, type: Bin) => `${type.name}[${fixed}]`,
     "Array",
-    null,
     null,
     null,
     DefaultLengthBin,
@@ -334,7 +223,6 @@ export function makeTypedArrayBin<ArrayType extends Iterable<any>, T extends Bin
         clazz.name,
         type,
         null,
-        null,
         DefaultLengthBin,
         <any>clazz
     );
@@ -346,7 +234,6 @@ export const SetBin = new ArrayBinConstructor<"set">(
     (fixed: number) => `Set<length=${fixed}>`,
     (fixed: number, type: Bin) => `Set<type=${type.name}, length=${fixed}>`,
     "Set",
-    null,
     null,
     null,
     DefaultLengthBin,

@@ -17,7 +17,7 @@ export default new class BooleanBin extends Bin<boolean> {
         return 1;
     };
 
-    findProblem(value: any, _: any): string | void {
-        if (typeof value !== "boolean") return "Expected a boolean";
+    findProblem(value: any, _: any) {
+        if (typeof value !== "boolean") return this.makeProblem("Expected a boolean");
     };
 }

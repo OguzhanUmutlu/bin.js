@@ -25,11 +25,11 @@ export default new class CStringBin extends Bin<string> {
         return Buffer.byteLength(value, "utf8") + 1;
     };
 
-    findProblem(value: any, _ = false): string | void | undefined {
-        if (typeof value !== "string") return "Expected a string";
+    findProblem(value: any, _ = false) {
+        if (typeof value !== "string") return this.makeProblem("Expected a string");
         const buf = Buffer.from(value, "utf8");
         for (let i = 0; i < buf.length; i++) {
-            if (buf[i] === 0) return "String contains null byte, use sized strings(s8, s16, s32) to avoid this";
+            if (buf[i] === 0) return this.makeProblem("Unexpected null byte", `[${i}]`);
         }
     };
 }

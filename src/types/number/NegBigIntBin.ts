@@ -18,8 +18,8 @@ export default new class NegBigIntBin extends Bin<bigint> {
         return UBigIntBin.unsafeSize(-value);
     };
 
-    findProblem(value: any, _: any): string | void {
-        if (typeof value !== "bigint") return "Expected a big integer";
-        if (value > 0n) return "Expected a non-positive big integer";
+    findProblem(value: any, _: any) {
+        if (typeof value !== "bigint") return this.makeProblem("Expected a big integer");
+        if (value > 0n) return this.makeProblem("Expected a non-positive big integer");
     };
 }

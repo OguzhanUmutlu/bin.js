@@ -12,9 +12,9 @@ export default abstract class IntBaseBin extends Bin<number> {
         return this.bytes;
     };
 
-    findProblem(value: any, _: any): string | void {
-        if (typeof value !== "number") return "Expected a number";
-        if (!Number.isInteger(value)) return "Expected an integer";
-        if (value < this.min || value > this.max) return `Expected a number between ${this.min} and ${this.max}`;
+    findProblem(value: any, _: any) {
+        if (typeof value !== "number") return this.makeProblem("Expected a number");
+        if (!Number.isInteger(value)) return this.makeProblem("Expected an integer");
+        if (value < this.min || value > this.max) return this.makeProblem(`Expected a number between ${this.min} and ${this.max}`);
     };
 }

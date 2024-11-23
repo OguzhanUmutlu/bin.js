@@ -1,5 +1,6 @@
 import {BufferIndex} from "./BufferIndex";
 import {AnyBinConstructor} from "./types/AnyBin";
+import {StrampProblem} from "./StrampProblem";
 
 type HolderBuffer<Data = any, Owner extends Bin = Bin> = Buffer & {
     __buffer__data__: Data,
@@ -22,7 +23,7 @@ export abstract class Bin<T = any> {
     abstract unsafeWrite(bind: BufferIndex, value: T | Readonly<T>): void;
     abstract read(bind: BufferIndex): T;
     abstract unsafeSize(value: T | Readonly<T>): number;
-    abstract findProblem(value: any, strict?: boolean): void | undefined | string;
+    abstract findProblem(value: any, strict?: boolean): StrampProblem | void;
     abstract get sample(): T;
 
     constructor() {
@@ -41,7 +42,7 @@ export abstract class Bin<T = any> {
 
     assert(value: any) {
         const err = this.findProblem(value);
-        if (err) throw new Error(err);
+        if (err) throw new Error((err[0] ? err[0] + ": " : "") + err[1]);
     };
 
     serialize<K extends T>(value: K | Readonly<K>) {
@@ -66,5 +67,9 @@ export abstract class Bin<T = any> {
 
     or<T extends Bin[]>(...type: T): AnyBinConstructor<[this, ...T]> {
         return Bin.AnyBin.of(this, ...type);
+    };
+
+    makeProblem(problem: string, source = "") {
+        return new StrampProblem(problem, this, this, source);
     };
 }

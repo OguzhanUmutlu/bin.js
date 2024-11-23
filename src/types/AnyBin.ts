@@ -23,8 +23,8 @@ export class AnyValueBinConstructor<T extends any[]> extends Bin<T[number]> {
         return this.idBinSize;
     };
 
-    findProblem(value: any, _?: boolean): void | string | undefined {
-        if (!this.values.includes(value)) return "Unsupported value";
+    findProblem(value: any, _?: boolean) {
+        if (!this.values.includes(value)) return this.makeProblem("Unsupported value");
     };
 
     get sample() {
@@ -64,8 +64,8 @@ export class AnyBinConstructor<Bins extends Bin[]> extends Bin<Bins[number]["__T
         return type.unsafeSize(value) + 1;
     };
 
-    findProblem(value: any, _ = false, type_ = this.getTypeOf(value)!): string | void {
-        if (!type_) return "Unsupported type";
+    findProblem(value: any, _ = false, type_ = this.getTypeOf(value)!) {
+        if (!type_) return this.makeProblem("Unsupported type");
     };
 
     get sample() {

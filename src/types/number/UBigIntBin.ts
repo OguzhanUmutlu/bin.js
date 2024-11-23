@@ -28,8 +28,8 @@ export default new class UBigIntBin extends Bin<bigint> {
         return hex.length / 2 + 2;
     };
 
-    findProblem(value: any, _: any): string | void {
-        if (typeof value !== "bigint") return "Expected a big integer";
-        if (value < 0) return "Expected a non-negative big integer";
+    findProblem(value: any, _: any) {
+        if (typeof value !== "bigint") return this.makeProblem("Expected a big integer");
+        if (value < 0) return this.makeProblem("Expected a non-negative big integer");
     };
 }
