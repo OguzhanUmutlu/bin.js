@@ -110,8 +110,10 @@ export default class ObjectStructBinConstructor<
         return o;
     };
 
-    extend<N extends { [k: string]: Bin }>(data: N | ObjectStructBinConstructor<N>) {
+    extend<N extends { [k: string]: Bin }>(d: N | ObjectStructBinConstructor<N>) {
         const o = <ObjectStructBinConstructor<StructData & N>><any>this.copy(false);
+        const data = d instanceof ObjectStructBinConstructor ? d.structData : d;
+
         o.structData = <any>{...this.structData, ...data};
         o.init();
         return o;
