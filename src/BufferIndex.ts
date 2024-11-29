@@ -4,6 +4,7 @@ export class BufferIndex {
     static alloc(size: number) {
         return new BufferIndex(Buffer.alloc(size), 0);
     };
+
     static allocUnsafe(size: number) {
         return new BufferIndex(Buffer.allocUnsafe(size), 0);
     };

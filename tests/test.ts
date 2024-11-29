@@ -1,10 +1,9 @@
 import X from "../src/Stramp";
 
-const B = X.array.struct([
-    X.u8,
-    X.string8,
-    X.bool,
-    X.array.typed(X.u8).lengthBytes(X.u8)
-]);
+const buf = X.string16.serialize("§a");
 
-console.log(B.serialize([5, "A", true, [5, 6, 7, 8, 9]]));
+console.log(Buffer.from("§a"));
+
+console.log(buf);
+
+console.log(X.string16.deserialize(buf));

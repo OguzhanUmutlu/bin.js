@@ -59,7 +59,6 @@ Stramp comes with the following default types:
 * `bool`
 * `array`: Can hold any of these types, check out [ArrayBin](#array-bin)
 * `set`: Has every feature an array has
-* `arrayBuffer`: u8 typed array, but writes and reads an ArrayBuffer object
 * `buffer`: u8 typed array, but writes and reads a Buffer object
 * `u8array`
 * `u8clampedArray`

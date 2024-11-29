@@ -1,5 +1,5 @@
 import {BufferIndex} from "./BufferIndex";
-import {AnyBinConstructor} from "./types/AnyBin";
+import {AnyBinConstructor} from "./any/AnyBin";
 import {StrampProblem} from "./StrampProblem";
 
 type HolderBuffer<Data = any, Owner extends Bin = Bin> = Buffer & {
@@ -30,6 +30,20 @@ export abstract class Bin<T = any> {
         bins[this.internalId] = this;
     };
 
+    init() {
+        return this;
+    };
+
+    static create(...args: any[]) {
+        const bin = new (<any>this)(...args);
+        bin.init();
+        return bin;
+    };
+
+    copy() {
+        return <this>new (<any>this.constructor)();
+    };
+
     write(bind: BufferIndex, value: any) {
         this.assert(value);
         return this.unsafeWrite(bind, value);
@@ -40,9 +54,9 @@ export abstract class Bin<T = any> {
         return this.unsafeSize(value);
     };
 
-    assert(value: any) {
-        const err = this.findProblem(value);
-        if (err) throw new Error((err[0] ? err[0] + ": " : "") + err[1]);
+    assert(value: any, strict = false) {
+        const err = this.findProblem(value, strict);
+        if (err) throw new Error(err.toString());
     };
 
     serialize<K extends T>(value: K | Readonly<K>) {

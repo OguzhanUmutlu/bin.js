@@ -1,31 +1,30 @@
 // noinspection JSUnusedGlobalSymbols
 
 import {BufferIndex} from "./BufferIndex";
-import BigIntBin from "./types/number/BigIntBin";
-import UBigIntBin from "./types/number/UBigIntBin";
-import Float64Bin from "./types/number/Float64Bin";
-import Float32Bin from "./types/number/Float32Bin";
-import Int64Bin from "./types/number/Int64Bin";
-import Int32Bin from "./types/number/Int32Bin";
-import Int16Bin from "./types/number/Int16Bin";
-import Int8Bin from "./types/number/Int8Bin";
-import UInt64Bin from "./types/number/UInt64Bin";
-import UInt32Bin from "./types/number/UInt32Bin";
-import UInt16Bin from "./types/number/UInt16Bin";
-import UInt8Bin from "./types/number/UInt8Bin";
-import ZeroBin from "./types/number/specials/ZeroBin";
-import bigZeroBin from "./types/number/specials/BigZeroBin";
-import BigZeroBin from "./types/number/specials/BigZeroBin";
-import NaNBin from "./types/number/specials/NaNBin";
-import NullBin from "./types/constant/NullBin";
-import UndefinedBin from "./types/constant/UndefinedBin";
-import InfinityBin from "./types/number/specials/InfinityBin";
-import NegativeInfinityBin from "./types/number/specials/NegativeInfinityBin";
-import TrueBin from "./types/boolean/TrueBin";
-import FalseBin from "./types/boolean/FalseBin";
-import BooleanBin from "./types/boolean/BooleanBin";
+import BigIntBin from "./number/BigIntBin";
+import UBigIntBin from "./number/UBigIntBin";
+import Float64Bin from "./number/Float64Bin";
+import Float32Bin from "./number/Float32Bin";
+import Int64Bin from "./number/Int64Bin";
+import Int32Bin from "./number/Int32Bin";
+import Int16Bin from "./number/Int16Bin";
+import Int8Bin from "./number/Int8Bin";
+import UInt64Bin from "./number/UInt64Bin";
+import UInt32Bin from "./number/UInt32Bin";
+import UInt16Bin from "./number/UInt16Bin";
+import UInt8Bin from "./number/UInt8Bin";
+import ZeroBin from "./number/specials/ZeroBin";
+import bigZeroBin from "./number/specials/BigZeroBin";
+import BigZeroBin from "./number/specials/BigZeroBin";
+import NaNBin from "./number/specials/NaNBin";
+import NullBin from "./constant/NullBin";
+import UndefinedBin from "./constant/UndefinedBin";
+import InfinityBin from "./number/specials/InfinityBin";
+import NegativeInfinityBin from "./number/specials/NegativeInfinityBin";
+import TrueBin from "./boolean/TrueBin";
+import FalseBin from "./boolean/FalseBin";
+import BooleanBin from "./boolean/BooleanBin";
 import ArrayBin, {
-    ArrayBufferBin,
     BufferBin,
     Float32ArrayBin,
     Float64ArrayBin,
@@ -39,21 +38,22 @@ import ArrayBin, {
     UInt64ArrayBin,
     UInt8ArrayBin,
     UInt8ClampedArrayBin
-} from "./types/array/ArrayBin";
-import AnyBin from "./types/AnyBin";
+} from "./array/ArrayBin";
+import AnyBin from "./any/AnyBin";
 import {Bin, getBinByInternalId} from "./Bin";
-import NegBigIntBin from "./types/number/NegBigIntBin";
-import DateBin from "./types/object/DateBin";
-import ObjectBin from "./types/object/ObjectBin";
-import {String16Bin, String32Bin, String8Bin} from "./types/string/LengthBasedStringBin";
-import CStringBin from "./types/string/CStringBin";
-import MapBin from "./types/object/MapBin";
-import ClassInstanceBin from "./types/object/ClassInstanceBin";
-import IgnoreBin from "./types/IgnoreBin";
-import RegExpBin from "./types/object/RegExpBin";
-import IntBaseBin from "./types/number/base/IntBaseBin";
-import BigIntBaseBin from "./types/number/base/BigIntBaseBin";
-import ObjectStructBin from "./types/object/ObjectStructBin";
+import NegBigIntBin from "./number/NegBigIntBin";
+import DateBin from "./object/DateBin";
+import ObjectBin from "./object/ObjectBin";
+import {String16Bin, String32Bin, String8Bin} from "./string/LengthBasedStringBin";
+import CStringBin from "./string/CStringBin";
+import MapBin from "./object/MapBin";
+import ClassInstanceBin from "./object/ClassInstanceBin";
+import IgnoreBin from "./misc/IgnoreBin";
+import RegExpBin from "./object/RegExpBin";
+import IntBaseBin from "./number/base/IntBaseBin";
+import BigIntBaseBin from "./number/base/BigIntBaseBin";
+import ObjectStructBin from "./object/ObjectStructBin";
+import NumberBin from "./number/NumberBin";
 
 class Stramp extends Bin {
     name = "any";
@@ -83,7 +83,7 @@ class Stramp extends Bin {
 
     f32 = Float32Bin;
     f64 = Float64Bin;
-    number = Float64Bin;
+    number = NumberBin;
 
     ubigint = UBigIntBin;
     bigint = BigIntBin;
@@ -98,7 +98,6 @@ class Stramp extends Bin {
 
     array = ArrayBin;
     set = SetBin;
-    arrayBuffer = ArrayBufferBin;
     buffer = BufferBin;
     u8array = UInt8ArrayBin;
     u8clampedArray = UInt8ClampedArrayBin;
@@ -144,6 +143,35 @@ class Stramp extends Bin {
         if (!type) return this.makeProblem("Unknown type");
     };
 
+    getNumberTypeOf(value: number) {
+        if (isNaN(value)) return NaNBin;
+        if (value === Infinity) return InfinityBin;
+        if (value === -Infinity) return NegativeInfinityBin;
+        if (value === 0) return ZeroBin;
+        if (value % 1 === 0) {
+            if (value >= 0) {
+                if (value <= 127) return UInt8Bin;
+                if (value <= 32_767) return UInt16Bin;
+                if (value <= 2_147_483_647) return UInt32Bin;
+            } else {
+                if (value >= -128) return Int8Bin;
+                if (value >= -32_768) return Int16Bin;
+                if (value >= -2_147_483_648) return Int32Bin;
+            }
+        }
+
+        // NOTE: Float32 is too imprecise, so we are not using it by default, but it can be optionally used.
+        /*const FLOAT32_MAX = 3.4028235e38;
+        const FLOAT32_MIN = -3.4028235e38;
+        const FLOAT32_SMALLEST_POSITIVE = 1.4e-45;
+
+        if ((value >= FLOAT32_SMALLEST_POSITIVE || value === 0) && value <= FLOAT32_MAX && value >= FLOAT32_MIN) {
+            return Float32Bin;
+        }*/
+
+        return Float64Bin;
+    };
+
     getTypeOf<T>(value: T): Bin<T> | null;
 
     getTypeOf(value: any): any {
@@ -161,32 +189,7 @@ class Stramp extends Bin {
             return Int64Bin;
         }
         if (typeof value === "number") {
-            if (isNaN(value)) return NaNBin;
-            if (value === Infinity) return InfinityBin;
-            if (value === -Infinity) return NegativeInfinityBin;
-            if (value === 0) return ZeroBin;
-            if (value % 1 === 0) {
-                if (value >= 0) {
-                    if (value <= 127) return UInt8Bin;
-                    if (value <= 32_767) return UInt16Bin;
-                    if (value <= 2_147_483_647) return UInt32Bin;
-                } else {
-                    if (value >= -128) return Int8Bin;
-                    if (value >= -32_768) return Int16Bin;
-                    if (value >= -2_147_483_648) return Int32Bin;
-                }
-            }
-
-            // NOTE: Float32 is too imprecise, so we are not using it by default, but it can be optionally used.
-            /*const FLOAT32_MAX = 3.4028235e38;
-            const FLOAT32_MIN = -3.4028235e38;
-            const FLOAT32_SMALLEST_POSITIVE = 1.4e-45;
-
-            if ((value >= FLOAT32_SMALLEST_POSITIVE || value === 0) && value <= FLOAT32_MAX && value >= FLOAT32_MIN) {
-                return Float32Bin;
-            }*/
-
-            return Float64Bin;
+            return this.getNumberTypeOf(value);
         }
         if (typeof value === "string") {
             if (value.length <= UInt8Bin.max) return String8Bin;
