@@ -3,6 +3,9 @@ import {BufferIndex} from "../BufferIndex";
 import Stramp from "../Stramp";
 
 type so<SD extends Record<string, Bin>> = { [k in keyof SD]: SD[k]["__TYPE__"] };
+type ExcludeKeys<Obj, Keys extends readonly string[]> = {
+    [K in keyof Obj as K extends Keys[number] ? never : K]: Obj[K];
+};
 
 export default class ObjectStructBinConstructor<
     StructData extends { [k: string]: Bin },
@@ -117,6 +120,21 @@ export default class ObjectStructBinConstructor<
         o.structData = <any>{...this.structData, ...data};
         o.init();
         return o;
+    };
+
+    excludeKeys<K extends string[]>(...keys: K) {
+        const o = this.copy(false);
+        const structData = <any>{};
+        const keysToKeep = Object.keys(this.structData).filter(k => !keys.includes(k));
+
+        for (let i = 0; i < keysToKeep.length; i++) {
+            const key = keysToKeep[i];
+            structData[key] = this.structData[key];
+        }
+
+        o.structData = structData;
+        o.init();
+        return <ObjectStructBinConstructor<ExcludeKeys<StructData, K>>>o;
     };
 
     copy(init = true) {

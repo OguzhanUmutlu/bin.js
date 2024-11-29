@@ -1,9 +1,13 @@
 import X from "../src/Stramp";
 
-const buf = X.string16.serialize("§a");
+const o = X.object.struct({
+    a: X.u8,
+    b: X.u16,
+    c: X.u32
+});
 
-console.log(Buffer.from("§a"));
+const c = o.structData;
 
-console.log(buf);
+const b = o.excludeKeys("a", "b");
 
-console.log(X.string16.deserialize(buf));
+console.log(b.serialize({c: 10}))
