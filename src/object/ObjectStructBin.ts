@@ -108,7 +108,7 @@ export default class ObjectStructBinConstructor<
     };
 
     keys() {
-        return Object.keys(this.structData);
+        return <(keyof StructData)[]>Object.keys(this.structData);
     };
 
     withConstructor<N>(classConstructor: ((obj: StructObject) => N)) {

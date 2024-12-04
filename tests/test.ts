@@ -6,6 +6,8 @@ const o = X.object.struct({
     c: X.u32
 });
 
+const d = o.keys();
+
 const c = o.structData;
 
 const b = o.excludeKeys("a", "b");
