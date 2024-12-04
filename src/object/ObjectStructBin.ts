@@ -107,6 +107,10 @@ export default class ObjectStructBinConstructor<
         return this.classConstructor(obj);
     };
 
+    keys() {
+        return Object.keys(this.structData);
+    };
+
     withConstructor<N>(classConstructor: ((obj: StructObject) => N)) {
         const o = <ObjectStructBinConstructor<StructData, StructObject, N>><any>this.copy();
         o.classConstructor = classConstructor;
