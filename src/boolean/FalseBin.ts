@@ -18,4 +18,8 @@ export default new class FalseBin extends Bin<false> {
     findProblem(value: any, strict = false) {
         if (strict && value !== false) return this.makeProblem("Expected false");
     };
+
+    adapt() {
+        return false as const;
+    };
 }

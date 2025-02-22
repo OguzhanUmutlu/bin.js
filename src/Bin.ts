@@ -56,7 +56,7 @@ export abstract class Bin<T = any> {
 
     assert(value: any, strict = false) {
         const err = this.findProblem(value, strict);
-        if (err) throw new Error(err.toString());
+        if (err) err.throw();
     };
 
     serialize<K extends T>(value: K | Readonly<K>) {
@@ -85,5 +85,10 @@ export abstract class Bin<T = any> {
 
     makeProblem(problem: string, source = "") {
         return new StrampProblem(problem, this, this, source);
+    };
+
+    adapt(value: any): T {
+        this.assert(value);
+        return value;
     };
 }

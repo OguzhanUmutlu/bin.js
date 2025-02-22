@@ -129,6 +129,35 @@ export class ArrayBinConstructor<
         return new this.baseClass(result);
     };
 
+    adapt(value: any): T {
+        if (typeof value !== "object" || value === null || !(Symbol.iterator in value)) this.makeProblem("Expected an iterable").throw();
+
+        value = Array.from(value);
+
+        if (this.fixedSize) {
+            if (value.length > this.fixedSize) value.length = this.fixedSize;
+            else {
+                const len = value.length;
+
+                for (let i = len; i < this.fixedSize; i++) {
+                    value.push(this.type ? this.type.sample : null);
+                }
+            }
+        }
+
+        const maxLength = 1 << this.lengthBinSize;
+
+        if (value.length >= maxLength) {
+            value.length = maxLength - 1;
+        }
+
+        if (this.type) for (let i = 0; i < value.length; i++) {
+            value[i] = this.type.adapt(value[i]);
+        }
+
+        return super.adapt(<any>this.baseClass === Array ? value : new this.baseClass(value));
+    };
+
     lengthBytes<N extends Bin<number>>(len: N) {
         const o = this.copy(false);
         o.lengthBin = len;

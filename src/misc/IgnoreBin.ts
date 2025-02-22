@@ -1,9 +1,9 @@
 import {Bin} from "../Bin";
 import {BufferIndex} from "../BufferIndex";
 
-export default new class IgnoreBin extends Bin<undefined> {
+export default new class IgnoreBin extends Bin<void> {
     name = "Ignore";
-    sample = undefined;
+    sample = <void>undefined;
 
     unsafeWrite(_: BufferIndex, __: any) {
     };
@@ -17,5 +17,8 @@ export default new class IgnoreBin extends Bin<undefined> {
     };
 
     findProblem(_: any, __?: any) {
+    };
+
+    adapt() {
     };
 }

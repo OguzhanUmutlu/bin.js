@@ -18,4 +18,8 @@ export default new class TrueBin extends Bin<true> {
     findProblem(value: any, strict = false) {
         if (strict && value !== true) return this.makeProblem("Expected true");
     };
+
+    adapt() {
+        return true as const;
+    };
 }

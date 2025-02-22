@@ -18,4 +18,8 @@ export default new class UndefinedBin extends Bin<undefined> {
     findProblem(value: any, strict = false) {
         if (strict && value !== undefined) return this.makeProblem("Expected undefined");
     };
+
+    adapt() {
+        return undefined;
+    };
 }

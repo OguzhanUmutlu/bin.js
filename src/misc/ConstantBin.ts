@@ -32,6 +32,10 @@ export class ConstantBinConstructor<T> extends Bin<T> {
         return new ConstantBinConstructor(name, value);
     };
 
+    adapt() {
+        return this.sample;
+    };
+
     copy() {
         const o = super.copy();
         o.name = this.name;

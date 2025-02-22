@@ -20,4 +20,8 @@ export default new class BooleanBin extends Bin<boolean> {
     findProblem(value: any, _: any) {
         if (typeof value !== "boolean") return this.makeProblem("Expected a boolean");
     };
+
+    adapt(value: any) {
+        return Boolean(value);
+    };
 }

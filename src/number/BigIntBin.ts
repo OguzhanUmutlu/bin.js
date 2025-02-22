@@ -1,6 +1,7 @@
 import {Bin} from "../Bin";
 import {BufferIndex} from "../BufferIndex";
 import UBigIntBin from "./UBigIntBin";
+import {bigint} from "../Stramp";
 
 export default new class BigIntBin extends Bin<bigint> {
     name = "bi";
@@ -21,5 +22,12 @@ export default new class BigIntBin extends Bin<bigint> {
 
     findProblem(value: any, _: any) {
         if (typeof value !== "bigint") return this.makeProblem("Expected a big integer");
+    };
+
+    adapt(value: any) {
+        if (typeof value === "number") value = BigInt(value);
+        else if (typeof value !== "bigint") this.makeProblem("Expected a big integer").throw();
+
+        return super.adapt(value);
     };
 }

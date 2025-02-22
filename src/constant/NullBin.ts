@@ -18,4 +18,8 @@ export default new class NullBin extends Bin<null> {
     findProblem(value: any, strict = false) {
         if (strict && value !== null) return this.makeProblem("Expected null");
     };
+
+    adapt() {
+        return null;
+    };
 }

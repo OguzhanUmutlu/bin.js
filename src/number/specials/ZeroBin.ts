@@ -18,4 +18,8 @@ export default new class ZeroBin extends Bin<0> {
     findProblem(value: any, strict = false) {
         if (strict && value !== 0) return this.makeProblem("Expected 0");
     };
+
+    adapt() {
+        return 0 as const;
+    };
 }

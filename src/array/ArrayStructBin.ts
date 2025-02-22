@@ -86,6 +86,19 @@ export class ArrayStructBinConstructor<
         return new this.baseClass(result);
     };
 
+    adapt(value: any): T {
+        if (typeof value !== "object" || value === null || !(Symbol.iterator in value)) this.makeProblem("Expected an iterable").throw();
+
+        value = Array.from(value);
+        const fixedSize = this.types.length;
+
+        for (let i = 0; i < fixedSize; i++) {
+            value[i] = i >= value.length ? this.types[i].sample : this.types[i].adapt(value[i]);
+        }
+
+        return super.adapt(value);
+    };
+
     normal() {
         return new ArrayBinConstructor<ClassType, K, T>(
             this.typesName,

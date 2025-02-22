@@ -85,6 +85,21 @@ class MapBinConstructor<
         return <T>new Map;
     };
 
+    adapt(value: any): T {
+        if (value === null || typeof value !== "object") this.makeProblem("Expected an object").throw();
+
+        const map = new Map;
+        const keys = Object.keys(value);
+        const maxLength = 1 << this.lengthBinSize;
+        if (keys.length >= maxLength) keys.length = maxLength - 1;
+
+        for (const key of keys) {
+            map.set(this.keyType.adapt(key), this.valueType ? this.valueType.adapt(value[key]) : value[key]);
+        }
+
+        return super.adapt(map);
+    };
+
     withKeyType<N extends Bin>(key: N) {
         const o = <MapBinConstructor<N, VType>><any>this.copy(false);
         o.keyType = key;

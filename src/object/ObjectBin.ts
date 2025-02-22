@@ -93,6 +93,21 @@ class ObjectBinConstructor<
         return this.classConstructor(<any>{});
     };
 
+    adapt(value: any): T {
+        if (value === null || typeof value !== "object") this.makeProblem("Expected an object").throw();
+
+        const obj = {};
+        const keys = Object.keys(value);
+        const maxLength = 1 << this.lengthBinSize;
+        if (keys.length >= maxLength) keys.length = maxLength - 1;
+
+        for (const key of keys) {
+            obj[this.keyType.adapt(key)] = this.valueType ? this.valueType.adapt(value[key]) : value[key];
+        }
+
+        return super.adapt(this.classConstructor(<VObject>obj));
+    };
+
     keyTyped<N extends StringBin>(key: N) {
         const o = this.copy(false);
         o.keyType = key;

@@ -13,6 +13,10 @@ export class StrampProblem {
         return this;
     };
 
+    throw(): never {
+        throw new Error(this.toString());
+    };
+
     toString() {
         return this.baseBin.name + this.source + (this.baseBin === this.lastBin ? "" : ` -> ${this.lastBin.name}`) + ": " + this.problem;
     };

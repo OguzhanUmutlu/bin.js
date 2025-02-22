@@ -18,4 +18,8 @@ export default new class NaNBin extends Bin<number> {
     findProblem(value: any, strict = false) {
         if (strict && (typeof value !== "number" || !isNaN(value))) return this.makeProblem("Expected NaN");
     };
+
+    adapt() {
+        return NaN;
+    };
 }

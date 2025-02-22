@@ -34,4 +34,11 @@ export default new class CStringBin extends StringBin {
             if (buf[i] === 0) return this.makeProblem("Unexpected null byte", `[${i}]`);
         }
     };
+
+    adapt(value: any) {
+        const p = this.findStringProblems(value);
+        if (p) p.throw();
+
+        return super.adapt(value.replaceAll("\0", ""));
+    };
 }

@@ -18,4 +18,8 @@ export default new class NegativeInfinityBin extends Bin<number> {
     findProblem(value: any, strict = false) {
         if (strict && value !== -Infinity) return this.makeProblem("Expected -Infinity");
     };
+
+    adapt() {
+        return -Infinity;
+    };
 }

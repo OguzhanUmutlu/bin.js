@@ -18,4 +18,8 @@ export default new class BigZeroBin extends Bin<0n> {
     findProblem(value: any, strict = false) {
         if (strict && value !== 0n) return this.makeProblem("Expected 0n");
     };
+
+    adapt() {
+        return 0n as const;
+    };
 }

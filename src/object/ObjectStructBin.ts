@@ -107,6 +107,20 @@ export default class ObjectStructBinConstructor<
         return this.classConstructor(obj);
     };
 
+    adapt(value: any): T {
+        if (value === null || typeof value !== "object") this.makeProblem("Expected an object").throw();
+
+        const obj = <StructObject>{};
+        const keys = Object.keys(value);
+
+        for (const key of this.keys()) {
+            const type = this.structData[key];
+            obj[key] = keys.includes(<string>key) ? type.adapt(value[key]) : type.sample;
+        }
+
+        return super.adapt(this.classConstructor(obj));
+    };
+
     keys() {
         return <(keyof StructData)[]>Object.keys(this.structData);
     };
@@ -138,7 +152,7 @@ export default class ObjectStructBinConstructor<
 
         o.structData = structData;
         o.init();
-        return <ObjectStructBinConstructor<ExcludeKeys<StructData, K>>>o;
+        return <ObjectStructBinConstructor<ExcludeKeys<StructData, K>>><unknown>o;
     };
 
     copy(init = true) {
