@@ -20,7 +20,7 @@ export default abstract class IntBaseBin extends Bin<number> {
 
     adapt(value: any) {
         if (typeof value === "string" || typeof value === "bigint") value = Number(value);
-        else if (typeof value !== "number") this.makeProblem("Expected a number").throw();
+        else if (typeof value !== "number") value = 0;
 
         if (isNaN(value)) value = this.sample;
 

@@ -27,9 +27,7 @@ export default new class DateBin extends Bin<Date> {
     adapt(value: any): Date {
         if (typeof value === "number" || typeof value === "string") value = new Date(value);
 
-        if (value === new Date("")) value = this.sample;
-
-        if (!(value instanceof Date)) this.makeProblem("Expected a Date").throw();
+        if (value === new Date("") || !(value instanceof Date)) value = this.sample;
 
         return super.adapt(value);
     };

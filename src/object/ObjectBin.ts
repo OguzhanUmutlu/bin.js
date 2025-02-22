@@ -94,7 +94,7 @@ class ObjectBinConstructor<
     };
 
     adapt(value: any): T {
-        if (value === null || typeof value !== "object") this.makeProblem("Expected an object").throw();
+        if (value === null || typeof value !== "object") value = {};
 
         const obj = {};
         const keys = Object.keys(value);

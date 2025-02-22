@@ -130,7 +130,7 @@ export class ArrayBinConstructor<
     };
 
     adapt(value: any): T {
-        if (typeof value !== "object" || value === null || !(Symbol.iterator in value)) this.makeProblem("Expected an iterable").throw();
+        if (typeof value !== "object" || value === null || !(Symbol.iterator in value)) value = [];
 
         value = Array.from(value);
 

@@ -88,7 +88,6 @@ export abstract class Bin<T = any> {
     };
 
     adapt(value: any): T {
-        this.assert(value);
-        return value;
+        return this.findProblem(value) ? this.sample : value;
     };
 }

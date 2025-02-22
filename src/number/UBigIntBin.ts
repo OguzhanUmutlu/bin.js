@@ -35,7 +35,7 @@ export default new class UBigIntBin extends Bin<bigint> {
 
     adapt(value: any) {
         if (typeof value === "number") value = BigInt(value);
-        else if (typeof value !== "bigint") this.makeProblem("Expected a big integer").throw();
+        else if (typeof value !== "bigint") value = 0n;
 
         return super.adapt(value < 0n ? -value : value);
     };

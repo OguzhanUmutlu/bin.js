@@ -19,7 +19,7 @@ export default abstract class BigIntBaseBin extends Bin<bigint | number> {
 
     adapt(value: any) {
         if (typeof value === "number") value = BigInt(value);
-        if (typeof value !== "bigint") this.makeProblem("Expected a big integer").throw();
+        if (typeof value !== "bigint") value = 0n;
 
         return super.adapt(value > this.max ? this.max : (value < this.min ? this.min : value));
     };
