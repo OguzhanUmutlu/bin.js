@@ -7,7 +7,7 @@ import {DefaultLengthBin, DefaultStringBin} from "../Utils";
 import {StringBin} from "../string/StringBin";
 
 class ObjectBinConstructor<
-    VType extends Bin,
+    VType extends Bin = Bin,
     VObject extends Record<string, VType["__TYPE__"]> = Record<string, VType["__TYPE__"]>,
     T = VObject
 > extends Bin<T> {

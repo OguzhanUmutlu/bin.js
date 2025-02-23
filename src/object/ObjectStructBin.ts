@@ -8,7 +8,7 @@ type ExcludeKeys<Obj, Keys extends string[]> = {
 };
 
 export default class ObjectStructBinConstructor<
-    StructData extends { [k: string]: Bin },
+    StructData extends { [k: string]: Bin } = { [k: string]: Bin },
     StructObject extends so<StructData> = so<StructData>,
     T = StructObject
 > extends Bin<T> {
