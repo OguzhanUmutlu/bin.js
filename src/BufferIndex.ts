@@ -10,6 +10,7 @@ export class BufferIndex {
     };
 
     constructor(public buffer: Buffer, public index: number) {
+        (<any>buffer)._isBuffer = true;
     };
 
     get current() {

@@ -1,3 +1,8 @@
 import X from "../src/Stramp";
 
-console.log(X.array.typed(X.u8).sized(5).adapt([0n, "1.6", 0.5123]));
+const b = X.object.keyTyped(X.u8).valueTyped(X.u8);
+
+console.log(b.deserialize(b.serialize({
+    1: 10,
+    7: 50
+})));

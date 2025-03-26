@@ -8,14 +8,14 @@ import {StringBin} from "../string/StringBin";
 
 class ObjectBinConstructor<
     VType extends Bin = Bin,
-    VObject extends Record<string, VType["__TYPE__"]> = Record<string, VType["__TYPE__"]>,
+    VObject extends Record<string | number, VType["__TYPE__"]> = Record<string | number, VType["__TYPE__"]>,
     T = VObject
 > extends Bin<T> {
     name: string;
     lengthBinSize: number;
 
     constructor(
-        public keyType: StringBin,
+        public keyType: StringBin | Bin<number>,
         public valueType: VType | null,
         public classConstructor: ((obj: VObject) => T),
         public baseName: string | null,
@@ -39,7 +39,7 @@ class ObjectBinConstructor<
 
         for (let i = 0; i < length; i++) {
             const key = keys[i];
-            this.keyType.unsafeWrite(bind, key);
+            this.keyType.unsafeWrite(bind, <never>(this.keyType instanceof StringBin ? key : +key));
             valueType.unsafeWrite(bind, value[<keyof T>key]);
         }
     };
@@ -64,7 +64,7 @@ class ObjectBinConstructor<
 
         for (let i = 0; i < keys.length; i++) {
             const key = keys[i];
-            size += this.keyType.unsafeSize(key);
+            size += this.keyType.unsafeSize(<never>(this.keyType instanceof StringBin ? key : +key));
             size += valueType.unsafeSize(value[<keyof T>key]);
         }
 
@@ -80,7 +80,7 @@ class ObjectBinConstructor<
         const keys = Object.keys(value);
         for (let i = 0; i < keys.length; i++) {
             const key = keys[i];
-            const keyProblem = keyType.findProblem(key, strict);
+            const keyProblem = keyType.findProblem(keyType instanceof StringBin ? key : +key, strict);
             if (keyProblem) return keyProblem.shifted(`[${JSON.stringify(key)}]`, this);
 
             const val = value[key];
@@ -108,14 +108,14 @@ class ObjectBinConstructor<
         return super.adapt(this.classConstructor(<VObject>obj));
     };
 
-    keyTyped<N extends StringBin>(key: N) {
+    keyTyped<N extends StringBin | Bin<number>>(key: N) {
         const o = this.copy(false);
         o.keyType = key;
         o.init();
         return o;
     };
 
-    valueTyped<N extends Bin<N>>(val: N) {
+    valueTyped<N extends Bin>(val: N) {
         const o = <ObjectBinConstructor<N>><any>this.copy(false);
         o.valueType = val;
         o.init();
