@@ -33,15 +33,15 @@ export class ArrayBinConstructor<
     lengthBinSize: number;
 
     constructor(
-        public typesName: (types: Bin[]) => string,
-        public typeName: (type: Bin) => string,
-        public fixedName: (fixed: number) => string,
-        public fixedTypeName: (fixed: number, type: Bin) => string,
-        public baseName: string,
-        public type: Bin<K> | null = null,
-        public fixedSize: number | null = null,
-        public lengthBin: Bin<number> = DefaultLengthBin,
-        public baseClass: new (...args: any[]) => T
+        public readonly typesName: (types: Bin[]) => string,
+        public readonly typeName: (type: Bin) => string,
+        public readonly fixedName: (fixed: number) => string,
+        public readonly fixedTypeName: (fixed: number, type: Bin) => string,
+        public readonly baseName: string,
+        public readonly type: Bin<K> | null = null,
+        public readonly fixedSize: number | null = null,
+        public readonly lengthBin: Bin<number> = DefaultLengthBin,
+        public readonly baseClass: new (...args: any[]) => T
     ) {
         super();
     }
@@ -158,30 +158,70 @@ export class ArrayBinConstructor<
         return super.adapt(<any>this.baseClass === Array ? value : new this.baseClass(value));
     };
 
-    lengthBytes<N extends Bin<number>>(len: N) {
-        const o = this.copy(false);
-        o.lengthBin = len;
+    lengthBytes<N extends Bin<number>>(lengthBin: N) {
+        const o = new ArrayBinConstructor(
+            this.typesName,
+            this.typeName,
+            this.fixedName,
+            this.fixedTypeName,
+            this.baseName,
+            this.type,
+            this.fixedSize,
+            lengthBin,
+            this.baseClass
+        );
         o.init();
         return o;
     };
 
     sized<N extends number>(fixedSize: N) {
-        const o = this.copy(false);
-        o.fixedSize = fixedSize;
+        const o = new ArrayBinConstructor(
+            this.typesName,
+            this.typeName,
+            this.fixedName,
+            this.fixedTypeName,
+            this.baseName,
+            this.type,
+            fixedSize,
+            this.lengthBin,
+            this.baseClass
+        );
         o.init();
         return o;
     };
 
     typed<N extends any>(type: Bin<N>) {
-        const o = <ArrayBinConstructor<ClassType, N>><any>this.copy(false);
-        o.type = type;
+        const o = <ArrayBinConstructor<ClassType, N>>new ArrayBinConstructor(
+            this.typesName,
+            this.typeName,
+            this.fixedName,
+            this.fixedTypeName,
+            this.baseName,
+            type,
+            this.fixedSize,
+            this.lengthBin,
+            <any>this.baseClass
+        );
         o.init();
         return o;
     };
 
+    of<N extends any>(type: Bin<N>) {
+        return this.typed(type);
+    };
+
     classed<CT extends new (...args: any[]) => Iterable<any>>(clazz: CT) {
-        const o = <ArrayBinConstructor<InstanceType<CT>, K>><any>this.copy(false);
-        o.baseClass = <any>clazz;
+        const o = <ArrayBinConstructor<InstanceType<CT>, K>>new ArrayBinConstructor(
+            this.typesName,
+            this.typeName,
+            this.fixedName,
+            this.fixedTypeName,
+            this.baseName,
+            this.type,
+            this.fixedSize,
+            this.lengthBin,
+            clazz
+        );
         o.init();
         return o;
     };
@@ -199,16 +239,17 @@ export class ArrayBinConstructor<
     };
 
     copy(init = true) {
-        const o = super.copy();
-        o.typesName = this.typesName;
-        o.typeName = this.typeName;
-        o.fixedName = this.fixedName;
-        o.fixedTypeName = this.fixedTypeName;
-        o.baseName = this.baseName;
-        o.type = this.type;
-        o.fixedSize = this.fixedSize;
-        o.lengthBin = this.lengthBin.copy();
-        o.baseClass = this.baseClass;
+        const o = new ArrayBinConstructor(
+            this.typesName,
+            this.typeName,
+            this.fixedName,
+            this.fixedTypeName,
+            this.baseName,
+            this.type,
+            this.fixedSize,
+            this.lengthBin,
+            this.baseClass
+        );
         if (init) o.init();
         return <this>o;
     };

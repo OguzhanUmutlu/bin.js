@@ -15,11 +15,11 @@ class ObjectBinConstructor<
     lengthBinSize: number;
 
     constructor(
-        public keyType: StringBin | Bin<number>,
-        public valueType: VType | null,
-        public classConstructor: ((obj: VObject) => T),
-        public baseName: string | null,
-        public lengthBin: Bin<number>
+        public readonly keyType: StringBin | Bin<number>,
+        public readonly valueType: VType | null,
+        public readonly classConstructor: ((obj: VObject) => T),
+        public readonly baseName: string | null,
+        public readonly lengthBin: Bin<number>
     ) {
         super();
     };
@@ -111,30 +111,50 @@ class ObjectBinConstructor<
         return super.adapt(this.classConstructor(<VObject>obj));
     };
 
-    keyTyped<N extends StringBin | Bin<number>>(key: N) {
-        const o = this.copy(false);
-        o.keyType = key;
+    keyTyped<N extends StringBin | Bin<number>>(keyType: N) {
+        const o = new ObjectBinConstructor(
+            keyType,
+            this.valueType,
+            this.classConstructor,
+            this.baseName,
+            this.lengthBin
+        );
         o.init();
         return o;
     };
 
-    valueTyped<N extends Bin>(val: N) {
-        const o = <ObjectBinConstructor<N>><any>this.copy(false);
-        o.valueType = val;
+    valueTyped<N extends Bin>(valueType: N) {
+        const o = <ObjectBinConstructor<N>>new ObjectBinConstructor(
+            this.keyType,
+            valueType,
+            this.classConstructor,
+            this.baseName,
+            this.lengthBin
+        );
         o.init();
         return o;
     };
 
-    lengthBytes<N extends IntBaseBin>(len: N) {
-        const o = this.copy(false);
-        o.lengthBin = len;
+    lengthBytes<N extends IntBaseBin>(lengthBin: N) {
+        const o = new ObjectBinConstructor(
+            this.keyType,
+            this.valueType,
+            this.classConstructor,
+            this.baseName,
+            lengthBin
+        );
         o.init();
         return o;
     };
 
     withConstructor<N extends (obj: VObject) => T>(cons: N) {
-        const o = this.copy(false);
-        o.classConstructor = cons;
+        const o = new ObjectBinConstructor(
+            this.keyType,
+            this.valueType,
+            cons,
+            this.baseName,
+            this.lengthBin
+        );
         o.init();
         return o;
     };
@@ -144,12 +164,13 @@ class ObjectBinConstructor<
     };
 
     copy(init = true) {
-        const o = super.copy();
-        o.keyType = this.keyType;
-        o.valueType = this.valueType;
-        o.classConstructor = this.classConstructor;
-        o.baseName = this.baseName;
-        o.lengthBin = this.lengthBin;
+        const o = <this>new ObjectBinConstructor(
+            this.keyType,
+            this.valueType,
+            this.classConstructor,
+            this.baseName,
+            this.lengthBin
+        );
         if (init) o.init();
         return o;
     };

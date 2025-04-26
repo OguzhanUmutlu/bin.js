@@ -11,13 +11,13 @@ export class ArrayStructBinConstructor<
     public name: string;
 
     constructor(
-        public typesName: (types: Bin[]) => string,
-        public typeName: (type: Bin) => string,
-        public fixedName: (fixed: number) => string,
-        public fixedTypeName: (fixed: number, type: Bin) => string,
-        public baseName: string,
-        public types: Bin<K>[] | null = null,
-        public baseClass: new (...args: any[]) => T
+        public readonly typesName: (types: Bin[]) => string,
+        public readonly typeName: (type: Bin) => string,
+        public readonly fixedName: (fixed: number) => string,
+        public readonly fixedTypeName: (fixed: number, type: Bin) => string,
+        public readonly baseName: string,
+        public readonly types: Bin<K>[] | null = null,
+        public readonly baseClass: new (...args: any[]) => T
     ) {
         super();
     };
@@ -114,14 +114,15 @@ export class ArrayStructBinConstructor<
     };
 
     copy(init = true) {
-        const o = super.copy();
-        o.typesName = this.typesName;
-        o.typeName = this.typeName;
-        o.fixedName = this.fixedName;
-        o.fixedTypeName = this.fixedTypeName;
-        o.baseName = this.baseName;
-        o.types = this.types;
-        o.baseClass = this.baseClass;
+        const o = <this>new ArrayStructBinConstructor(
+            this.typesName,
+            this.typeName,
+            this.fixedName,
+            this.fixedTypeName,
+            this.baseName,
+            this.types,
+            this.baseClass
+        );
         if (init) o.init();
         return o;
     };

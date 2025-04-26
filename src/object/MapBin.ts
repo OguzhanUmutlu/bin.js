@@ -12,9 +12,9 @@ class MapBinConstructor<
     lengthBinSize: number;
 
     constructor(
-        public keyType: KType | null,
-        public valueType: VType | null,
-        public lengthBin: Bin<number>
+        public readonly keyType: KType | null,
+        public readonly valueType: VType | null,
+        public readonly lengthBin: Bin<number>
     ) {
         super();
     };
@@ -102,32 +102,26 @@ class MapBinConstructor<
         return super.adapt(map);
     };
 
-    withKeyType<N extends Bin>(key: N) {
-        const o = <MapBinConstructor<N, VType>><any>this.copy(false);
-        o.keyType = key;
+    withKeyType<N extends Bin>(keyType: N) {
+        const o = <MapBinConstructor<N, VType>><any>new MapBinConstructor(keyType, this.valueType, this.lengthBin);
         o.init();
         return o;
     };
 
-    withValueType<N extends Bin>(val: N) {
-        const o = <MapBinConstructor<KType, N>><any>this.copy(false);
-        o.valueType = val;
+    withValueType<N extends Bin>(valueType: N) {
+        const o = <MapBinConstructor<KType, N>>new MapBinConstructor(this.keyType, valueType, this.lengthBin);
         o.init();
         return o;
     };
 
-    withLengthBin<N extends Bin>(len: N) {
-        const o = this.copy(false);
-        o.lengthBin = len;
+    withLengthBin<N extends Bin>(lengthBin: N) {
+        const o = new MapBinConstructor(this.keyType, this.valueType, lengthBin);
         o.init();
         return o;
     };
 
     copy(init = true) {
-        const o = super.copy();
-        o.keyType = this.keyType;
-        o.valueType = this.valueType;
-        o.lengthBin = this.lengthBin;
+        const o = <this>new MapBinConstructor(this.keyType, this.valueType, this.lengthBin);
         if (init) this.init();
         return o;
     };

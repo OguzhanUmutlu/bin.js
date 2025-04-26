@@ -350,3 +350,53 @@ const restoredValue = myBin.deserialize(buffer); // A
 
 console.log(restoredValue === A); // true
 ```
+
+## ZSTD compression implementation
+
+In the following example I will use the `@oneidentity/zstd-js` to compress a given buffer with any size. Uses 1 byte for
+notating whether it's compressed or not because ZSTD requires about 100 bytes to efficiently compress the data.
+
+The code is implemented in such way so that it works for both web and node.js.
+
+```ts
+import {ZstdInit, ZstdSimple} from "@oneidentity/zstd-js";
+import {Buffer} from "buffer"; // npm library that allows buffer api for web
+
+await ZstdInit();
+
+export function allocBuffer(size: number, safe = true) {
+    const buffer = safe ? Buffer.alloc(size) : Buffer.allocUnsafe(size);
+    buffer._isBuffer = true;
+    return buffer;
+}
+
+export function copyBuffer(buffer: Buffer | Uint8Array | number[]) {
+    const newBuffer = Buffer.from(buffer);
+    newBuffer._isBuffer = true;
+    return newBuffer;
+}
+
+export function zstdOptionalEncode(buffer: Buffer) {
+    if (buffer.length > 100) {
+        const compressed = ZstdSimple.compress(buffer);
+        const buffer2 = allocBuffer(compressed.length + 1);
+        buffer2[0] = 1;
+        buffer2.set(compressed, 1);
+        return buffer2;
+    }
+
+    const buffer2 = allocBuffer(buffer.length + 1);
+    buffer2[0] = 0; // just to be safe
+    buffer.copy(buffer2, 1);
+    return buffer2;
+}
+
+export function zstdOptionalDecode(buffer: Buffer) {
+    const sliced = allocBuffer(buffer.length - 1);
+    buffer.copy(sliced, 0, 1);
+
+    if (buffer[0] === 1) return copyBuffer(ZstdSimple.decompress(sliced));
+
+    return sliced;
+}
+```

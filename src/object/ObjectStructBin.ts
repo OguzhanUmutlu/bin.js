@@ -15,9 +15,9 @@ export default class ObjectStructBinConstructor<
     name = "";
 
     constructor(
-        public structData: StructData,
-        public classConstructor: ((obj: StructObject) => T),
-        public baseName: string | null
+        public structData: StructData, // not readonly because some people might want to use it recursively.
+        public readonly classConstructor: ((obj: StructObject) => T),
+        public readonly baseName: string | null
     ) {
         super();
     };
@@ -126,8 +126,12 @@ export default class ObjectStructBinConstructor<
     };
 
     withConstructor<N>(classConstructor: ((obj: StructObject) => N)) {
-        const o = <ObjectStructBinConstructor<StructData, StructObject, N>><any>this.copy();
-        o.classConstructor = classConstructor;
+        const o = <ObjectStructBinConstructor<StructData, StructObject, N>>new ObjectStructBinConstructor(
+            this.structData,
+            classConstructor,
+            this.baseName
+        );
+        this.init();
         return o;
     };
 
@@ -156,10 +160,11 @@ export default class ObjectStructBinConstructor<
     };
 
     copy(init = true) {
-        const o = super.copy();
-        o.structData = this.structData;
-        o.classConstructor = this.classConstructor;
-        o.baseName = this.baseName;
+        const o = <this>new ObjectStructBinConstructor(
+            this.structData,
+            this.classConstructor,
+            this.baseName
+        );
         if (init) o.init();
         return o;
     };
