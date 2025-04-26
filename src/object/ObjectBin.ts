@@ -51,6 +51,9 @@ class ObjectBinConstructor<
 
         for (let i = 0; i < length; i++) {
             const key = this.keyType.read(bind);
+            if (key === "__proto__" || key === "constructor" || key === "prototype") {
+                throw new Error(`Forbidden key ${key}`);
+            }
             result[key] = valueType.read(bind);
         }
 
