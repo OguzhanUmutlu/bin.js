@@ -28,7 +28,7 @@ export class ConstantBinConstructor<T> extends Bin<Readonly<T>> {
         }
     };
 
-    new<K>(name: string, value: Readonly<K>): ConstantBinConstructor<K> {
+    new<K>(value: Readonly<K>, name = JSON.stringify(value)): ConstantBinConstructor<K> {
         return new ConstantBinConstructor(value, name);
     };
 
