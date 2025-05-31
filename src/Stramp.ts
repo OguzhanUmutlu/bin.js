@@ -14,7 +14,6 @@ import UInt32Bin from "./number/UInt32Bin";
 import UInt16Bin from "./number/UInt16Bin";
 import UInt8Bin from "./number/UInt8Bin";
 import ZeroBin from "./number/specials/ZeroBin";
-import bigZeroBin from "./number/specials/BigZeroBin";
 import BigZeroBin from "./number/specials/BigZeroBin";
 import NaNBin from "./number/specials/NaNBin";
 import NullBin from "./constant/NullBin";
@@ -54,6 +53,7 @@ import IntBaseBin from "./number/base/IntBaseBin";
 import BigIntBaseBin from "./number/base/BigIntBaseBin";
 import ObjectStructBin from "./object/ObjectStructBin";
 import NumberBin from "./number/NumberBin";
+import ConstantBin, {ConstantBinConstructor} from "./misc/ConstantBin";
 
 class Stramp extends Bin {
     name = "any";
@@ -61,7 +61,7 @@ class Stramp extends Bin {
 
     // -- Specials --
     zero = ZeroBin;
-    bigZero = bigZeroBin;
+    bigZero = BigZeroBin;
     NaN = NaNBin;
     inf = InfinityBin;
     negInf = NegativeInfinityBin;
@@ -120,6 +120,7 @@ class Stramp extends Bin {
 
     any = AnyBin;
     ignore = IgnoreBin;
+    constant = new ConstantBinConstructor("Stramp!");
 
     unsafeWrite(bind: BufferIndex, value: any): void {
         const type = this.getTypeOf(value)!;
@@ -255,7 +256,7 @@ export {
     String16Bin as s16,
     String32Bin as s32,
     ZeroBin as zero,
-    bigZeroBin as bigZero,
+    BigZeroBin as bigZero,
     NaNBin as NaN,
     NullBin as null_,
     UndefinedBin as undefined,
@@ -266,6 +267,7 @@ export {
     BooleanBin as bool,
     CStringBin as string,
     ArrayBin as array,
+    ConstantBin as constant,
     stramp as any,
 
     Bin,

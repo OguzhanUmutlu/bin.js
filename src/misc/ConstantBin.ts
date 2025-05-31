@@ -1,10 +1,10 @@
 import {Bin} from "../Bin";
 import {BufferIndex} from "../BufferIndex";
 
-export class ConstantBinConstructor<T> extends Bin<T> {
+export class ConstantBinConstructor<T> extends Bin<Readonly<T>> {
     constructor(
-        public name: string,
-        public sample: T
+        public sample: Readonly<T>,
+        public name: string = JSON.stringify(sample)
     ) {
         super();
     };
@@ -28,8 +28,8 @@ export class ConstantBinConstructor<T> extends Bin<T> {
         }
     };
 
-    new<K>(name: string, value: K): ConstantBinConstructor<K> {
-        return new ConstantBinConstructor(name, value);
+    new<K>(name: string, value: Readonly<K>): ConstantBinConstructor<K> {
+        return new ConstantBinConstructor(value, name);
     };
 
     adapt() {
@@ -44,4 +44,4 @@ export class ConstantBinConstructor<T> extends Bin<T> {
     };
 }
 
-export default new ConstantBinConstructor("constant", "constant");
+export default new ConstantBinConstructor("constant");
